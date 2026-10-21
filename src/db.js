@@ -19,6 +19,7 @@ const SCHEMA = `
 CREATE TABLE IF NOT EXISTS desa (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   nama TEXT NOT NULL,
+  jenis TEXT NOT NULL DEFAULT 'desa' CHECK (jenis IN ('desa','dusun','individu')),
   kecamatan TEXT,
   kabupaten TEXT,
   alamat TEXT,
@@ -782,13 +783,30 @@ function migrate() {
 
   // Identitas usaha/pengelola: nama pelaku usaha & logo sendiri per desa.
   if (tables.includes('desa')) {
-    const kolomDesa = db.prepare('PRAGMA table_info(desa)').all().map((c) => c.name);
+    let kolomDesa = db.prepare('PRAGMA table_info(desa)').all().map((c) => c.name);
     if (!kolomDesa.includes('pelaku_usaha')) {
       db.exec('ALTER TABLE desa ADD COLUMN pelaku_usaha TEXT');
     }
     if (!kolomDesa.includes('logo_path')) {
       db.exec('ALTER TABLE desa ADD COLUMN logo_path TEXT');
     }
+    // Jenis ruang kerja: desa, dusun (mandiri), atau individu/usaha.
+    // Menentukan label profil dan apakah admin dusun boleh mengubahnya.
+    if (!kolomDesa.includes('jenis')) {
+      db.exec("ALTER TABLE desa ADD COLUMN jenis TEXT NOT NULL DEFAULT 'desa'");
+    }
+    kolomDesa = db.prepare('PRAGMA table_info(desa)').all().map((c) => c.name);
+  }
+
+  // Selaraskan jenis ruang kerja dengan data pendaftaran yang diterima.
+  // Aman dijalankan berulang: hanya mengisi tenant yang punya pendaftaran.
+  if (tables.includes('desa') && tables.includes('pendaftaran_pengelola') && tables.includes('users')) {
+    db.exec(`UPDATE desa SET jenis = COALESCE((
+      SELECT p.jenis FROM pendaftaran_pengelola p
+      JOIN users u ON u.id = p.user_id
+      WHERE u.desa_id = desa.id AND p.jenis IN ('desa','dusun','individu')
+      ORDER BY p.id DESC LIMIT 1
+    ), jenis)`);
   }
 
   // Jatuh tempo bawaan baru: tanggal 20 bulan berikutnya (dulu tanggal 10).

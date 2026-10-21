@@ -21,8 +21,8 @@
     </p>
   </div>
   <div class="page-actions">
-    <% if (peranDesa) { %>
-      <a class="btn btn-ghost" href="/profil-desa">Profil desa</a>
+    <% if (peranDesa || (user.role === 'admin_dusun' && desaAktif && desaAktif.jenis === 'dusun')) { %>
+      <a class="btn btn-ghost" href="/profil-pengelola">Profil pengelola</a>
     <% } %>
     <a class="btn btn-ghost" href="/">← Dashboard</a>
   </div>

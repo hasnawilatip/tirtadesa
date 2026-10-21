@@ -130,9 +130,11 @@
       <span class="quick-ico">🏘</span>
       <span><strong>Dusun</strong><span>Wilayah layanan</span></span>
     </a>
-    <a class="quick-tile" href="/profil-desa">
+  <% } %>
+  <% if (adminDesa || (adminDusun && desaAktif && desaAktif.jenis === 'dusun')) { %>
+    <a class="quick-tile" href="/profil-pengelola">
       <span class="quick-ico">🏛</span>
-      <span><strong>Profil Desa</strong><span>Identitas layanan</span></span>
+      <span><strong>Profil Pengelola</strong><span>Identitas layanan</span></span>
     </a>
   <% } %>
   <% if (adminDesa || adminDusun) { %>

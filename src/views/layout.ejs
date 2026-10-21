@@ -161,9 +161,10 @@
             <span class="nav-ico">▤</span> Langganan
           </a>
         <% } %>
-        <% if (adminDesa) { %>
-          <a class="nav-link <%= active('/profil-desa') ? 'active' : '' %>" href="/profil-desa">
-            <span class="nav-ico">⌂</span> Profil Desa
+        <% const bolehProfil = adminDesa || (adminDusun && desaAktif && desaAktif.jenis === 'dusun'); %>
+        <% if (bolehProfil) { %>
+          <a class="nav-link <%= (currentPath === '/profil-desa' || currentPath === '/profil-pengelola') ? 'active' : '' %>" href="/profil-pengelola">
+            <span class="nav-ico">⌂</span> Profil Pengelola
           </a>
         <% } %>
         <% if (superadmin || adminDesa) { %>

@@ -10,6 +10,7 @@
     "db:reset": "node scripts/reset-db.js",
     "test:smoke": "node scripts/smoke-test.js",
     "test:penggajian": "node scripts/uji-penggajian.js",
+    "test:profil-tenant": "node scripts/uji-profil-tenant.js",
     "backup": "node scripts/backup.js"
   },
   "engines": {

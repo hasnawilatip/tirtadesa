@@ -3,15 +3,32 @@
 const express = require('express');
 
 const { db } = require('../db');
-const { requireRole } = require('../auth');
 const { audit } = require('../helpers');
 const { buatUnggahan, hapusBerkas } = require('../services/unggah');
 const csrf = require('../services/csrf');
 
 const router = express.Router();
 
-// Profil desa adalah data operasional pengelola, bukan wewenang superadmin.
-router.use(requireRole('admin_desa'));
+// Profil pengelola adalah data operasional pengelola, bukan wewenang superadmin.
+// Satu tenant disimpan pada tabel `desa`, termasuk tenant berjenis dusun atau usaha.
+const JALUR_PROFIL = ['/profil-desa', '/profil-pengelola'];
+const KEMBALI = '/profil-pengelola';
+
+function bolehProfil(req, res, next) {
+  if (!req.user) return res.redirect('/login');
+  if (req.user.role === 'admin_desa') return next();
+  if (req.user.role === 'admin_dusun') {
+    const tenant = db.prepare('SELECT jenis FROM desa WHERE id = ?').get(req.user.desa_id);
+    if (tenant && tenant.jenis === 'dusun') return next();
+  }
+  return res.status(403).render('error', {
+    title: 'Akses ditolak',
+    message: 'Profil pengelola hanya dapat diubah oleh admin desa atau admin dusun mandiri.',
+  });
+}
+
+// Middleware dibatasi pada jalur profil agar tidak memblokir rute lain.
+router.use(JALUR_PROFIL, bolehProfil);
 
 const unggahLogo = buatUnggahan({
   folder: 'logo',
@@ -24,12 +41,12 @@ function unggahLogoAman(req, res, next) {
   unggahLogo.single('logo')(req, res, (err) => {
     if (err) {
       req.flash('error', err.message || 'Gagal mengunggah logo.');
-      return res.redirect('/profil-desa');
+      return res.redirect(KEMBALI);
     }
     return unggahLogo.validasi(req, res, (err2) => {
       if (err2) {
         req.flash('error', err2.message || 'Isi berkas logo tidak valid.');
-        return res.redirect('/profil-desa');
+        return res.redirect(KEMBALI);
       }
       return next();
     });
@@ -44,22 +61,26 @@ function dataDesa(user) {
   return db.prepare('SELECT * FROM desa WHERE id = ?').get(user.desa_id);
 }
 
-router.get('/profil-desa', (req, res) => {
-  res.render('profil-desa', { title: 'Profil Desa', desa: dataDesa(req.user) });
+router.get(JALUR_PROFIL, (req, res) => {
+  res.render('profil-desa', {
+    title: 'Profil Pengelola',
+    desa: dataDesa(req.user),
+    jenisLabel: { desa: 'Ruang kerja desa', dusun: 'Ruang kerja dusun mandiri', individu: 'Ruang kerja usaha' },
+  });
 });
 
-router.post('/profil-desa', unggahLogoAman, csrf.setelahUnggah, (req, res) => {
+router.post(JALUR_PROFIL, unggahLogoAman, csrf.setelahUnggah, (req, res) => {
   const desa = dataDesa(req.user);
   if (!desa) {
     if (req.file) hapusBerkasLogo(`/uploads/logo/${req.file.filename}`);
-    req.flash('error', 'Data desa belum tersedia.');
-    return res.redirect('/profil-desa');
+    req.flash('error', 'Data pengelola belum tersedia.');
+    return res.redirect(KEMBALI);
   }
   const nama = String(req.body.nama || '').trim();
   if (!nama) {
     if (req.file) hapusBerkasLogo(`/uploads/logo/${req.file.filename}`);
-    req.flash('error', 'Nama desa/usaha wajib diisi.');
-    return res.redirect('/profil-desa');
+    req.flash('error', 'Nama desa/dusun/usaha wajib diisi.');
+    return res.redirect(KEMBALI);
   }
 
   let logoPath = desa.logo_path;
@@ -83,11 +104,11 @@ router.post('/profil-desa', unggahLogoAman, csrf.setelahUnggah, (req, res) => {
     desa.id
   );
   audit(req, 'update', 'desa', desa.id, nama);
-  req.flash('success', 'Profil desa/usaha diperbarui.');
-  res.redirect('/profil-desa');
+  req.flash('success', 'Profil pengelola diperbarui.');
+  res.redirect(KEMBALI);
 });
 
-router.post('/profil-desa/logo/hapus', (req, res) => {
+router.post(['/profil-desa/logo/hapus', '/profil-pengelola/logo/hapus'], (req, res) => {
   const desa = dataDesa(req.user);
   if (desa) {
     hapusBerkasLogo(desa.logo_path);
@@ -95,7 +116,7 @@ router.post('/profil-desa/logo/hapus', (req, res) => {
     audit(req, 'delete', 'desa', desa.id, 'Hapus logo usaha');
   }
   req.flash('success', 'Logo dihapus.');
-  res.redirect('/profil-desa');
+  res.redirect(KEMBALI);
 });
 
 module.exports = router;

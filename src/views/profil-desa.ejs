@@ -1,7 +1,12 @@
 <div class="page-head">
   <div>
-    <h1>Profil Desa / Usaha</h1>
-    <p class="muted">Identitas pengelola (pelaku usaha) yang dipakai pada sidebar, struk, kwitansi, dan laporan.</p>
+    <h1>Profil Pengelola</h1>
+    <p class="muted">
+      Identitas pengelola (pelaku usaha) yang dipakai pada sidebar, struk, kwitansi, dan laporan.
+      <% if (desa && jenisLabel && jenisLabel[desa.jenis]) { %>
+        <span class="badge badge-info"><%= jenisLabel[desa.jenis] %></span>
+      <% } %>
+    </p>
   </div>
   <div class="page-actions">
     <a class="btn btn-ghost" href="/">← Dashboard</a>
@@ -9,16 +14,16 @@
 </div>
 
 <section class="card" style="max-width: 760px;">
-  <form action="/profil-desa" method="post" enctype="multipart/form-data">
+  <form action="/profil-pengelola" method="post" enctype="multipart/form-data">
     <div class="form-grid">
       <div class="field span-2">
-        <label>Nama desa / usaha</label>
+        <label>Nama pengelola (desa / dusun / usaha)</label>
         <input class="input" name="nama" value="<%= desa ? desa.nama : '' %>" required>
         <span class="small muted">Tampil sebagai judul pada struk dan nama di sidebar.</span>
       </div>
       <div class="field span-2">
         <label>Pelaku usaha / penanggung jawab</label>
-        <input class="input" name="pelaku_usaha" value="<%= desa ? (desa.pelaku_usaha || '') : '' %>" placeholder="Nama badan usaha, kelompok, atau perorangan">
+        <input class="input" name="pelaku_usaha" value="<%= desa ? (desa.pelaku_usaha || '') : '' %>" placeholder="Nama badan usaha, kelompok, dusun, atau perorangan">
         <span class="small muted">Ditampilkan di bawah nama usaha pada struk tagihan & kwitansi.</span>
       </div>
       <div class="field">
@@ -49,7 +54,7 @@
         <% } %>
       </div>
       <div class="field" style="flex:1;margin-bottom:0;">
-        <label>Logo usaha (PNG/JPG/WebP, maks. 2 MB)</label>
+        <label>Logo pengelola (PNG/JPG/WebP, maks. 2 MB)</label>
         <input class="input" type="file" name="logo" accept="image/png,image/jpeg,image/webp">
         <span class="small muted">
           Dipakai di sidebar dan struk. Bila kosong, memakai logo aplikasi dari Pengaturan.

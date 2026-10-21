@@ -378,7 +378,9 @@ async function main() {
     hasil(profilHtml.includes('name="pelaku_usaha"') && profilHtml.includes('name="logo"')
       && profilHtml.includes('enctype="multipart/form-data"')
       && profilHtml.includes('profile-logo-preview'),
-      'Profil desa punya pelaku usaha + unggah logo sendiri');
+      'Profil pengelola punya pelaku usaha + unggah logo sendiri');
+    await cekHalaman(admin, '/profil-pengelola', 200, 'Profil Pengelola');
+    hasil(profilHtml.includes('Profil Pengelola'), 'Menu memakai label Profil Pengelola');
   }
   const barisTagihan = tagihanHtml.split('<dialog')[0]
     .split('<tr').filter((b) => b.includes('class="badge badge-'));
@@ -437,6 +439,7 @@ async function main() {
   await cekHalaman(krajan, '/dusun', 403, 'Akses ditolak');
   await cekHalaman(krajan, '/pengguna', 200, 'Akun staf');
   await cekHalaman(krajan, '/profil-desa', 403, 'Akses ditolak');
+  await cekHalaman(krajan, '/profil-pengelola', 403, 'Akses ditolak');
   const daftarStafKrajan = await (await krajan.ambil('/pengguna')).text();
   hasil(daftarStafKrajan.includes('Petugas Catat Krajan') && !daftarStafKrajan.includes('Kasir Desa'),
     'Admin dusun hanya melihat staf dusunnya');

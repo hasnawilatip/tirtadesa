@@ -88,13 +88,28 @@ function bagianLokasi(lokasi) {
 
 function buatTenant(row, namaDusun, paketId = null) {
   const lokasi = bagianLokasi(row.lokasi);
-  // Individu/usaha memakai nama usaha pendaftar; desa & dusun memakai nama wilayah.
-  const namaDesa = (row.jenis === 'individu' ? row.usaha : lokasi.desa) || lokasi.desa || row.usaha || row.nama;
+  const jenis = ['desa', 'dusun', 'individu'].includes(row.jenis) ? row.jenis : 'desa';
+
+  // Nama ruang kerja mengikuti jenis pendaftaran:
+  // - individu/usaha → nama usaha pendaftar
+  // - dusun mandiri  → nama dusun (bukan nama desa induk)
+  // - desa           → nama desa
+  let namaDesa;
+  if (jenis === 'individu') {
+    namaDesa = row.usaha || row.nama;
+  } else if (jenis === 'dusun') {
+    const dasar = String(namaDusun || row.usaha || row.nama || '').trim();
+    namaDesa = /^dusun\s/i.test(dasar) ? dasar : `Dusun ${dasar}`.trim();
+  } else {
+    namaDesa = lokasi.desa || row.usaha || row.nama;
+  }
+  namaDesa = namaDesa || lokasi.desa || row.usaha || row.nama;
+
   const paket = paketId ? paketById(paketId) : null;
   const infoDesa = db.prepare(`INSERT INTO desa
-    (nama, kecamatan, kabupaten, alamat, telepon, paket_id, langganan_mulai, langganan_sampai, status_langganan)
-    VALUES (?,?,?,?,?,?, date('now','localtime'), date('now','localtime','+30 day'), 'aktif')`).run(
-    namaDesa, lokasi.kecamatan, lokasi.kabupaten, row.lokasi || null, row.whatsapp || null,
+    (nama, jenis, kecamatan, kabupaten, alamat, telepon, paket_id, langganan_mulai, langganan_sampai, status_langganan)
+    VALUES (?,?,?,?,?,?,?, date('now','localtime'), date('now','localtime','+30 day'), 'aktif')`).run(
+    namaDesa, jenis, lokasi.kecamatan, lokasi.kabupaten, row.lokasi || null, row.whatsapp || null,
     paket ? paket.id : null
   );
   const desaId = Number(infoDesa.lastInsertRowid);
