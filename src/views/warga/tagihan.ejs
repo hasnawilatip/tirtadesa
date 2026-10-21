@@ -1,0 +1,63 @@
+<div class="page-head">
+  <div>
+    <h1>Tagihan Saya</h1>
+    <p class="muted">
+      <% if (pelanggan) { %><%= pelanggan.nomor_pelanggan %> · <%= pelanggan.nama %><% } else { %>Akun belum ditautkan ke pelanggan.<% } %>
+    </p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-ghost" href="/warga">← Ringkasan</a>
+  </div>
+</div>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Daftar tagihan</h2>
+    <span class="muted small"><%= rows.length %> tagihan</span>
+  </div>
+  <% if (!rows.length) { %>
+    <div class="empty"><p>Belum ada tagihan untuk akun ini.</p></div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Periode</th>
+            <th class="num">Pakai</th>
+            <th class="num">Total</th>
+            <th class="num">Sisa</th>
+            <th>Status</th>
+            <th class="col-aksi">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% rows.forEach((t) => { %>
+            <tr>
+              <td>
+                <strong><%= periodeLabel(t.tahun, t.bulan) %></strong>
+                <div class="small muted">Jatuh tempo <%= tanggal(t.jatuh_tempo) %></div>
+              </td>
+              <td class="num"><%= angka(t.pemakaian_m3, 1) %> m³</td>
+              <td class="num"><%= rupiah(t.total) %></td>
+              <td class="num <%= t.total - t.terbayar > 0 ? 'text-danger' : 'text-success' %>"><%= rupiah(t.total - t.terbayar) %></td>
+              <td><span class="badge <%= statusKelas(t.status) %>"><%= statusLabel[t.status] %></span></td>
+              <td class="col-aksi nowrap">
+                <% const sisaBaris = Math.round((t.total - t.terbayar) * 100) / 100; %>
+                <% if (t.status !== 'batal' && sisaBaris > 0) { %>
+                  <% if (menunggu[t.id]) { %>
+                    <a class="btn btn-ghost btn-sm" href="/warga/bayar/<%= menunggu[t.id].kode %>">Status bayar</a>
+                  <% } else if (bayarInfo.aktif && saluranAktif > 0) { %>
+                    <a class="btn btn-primary btn-sm" href="/warga/tagihan/<%= t.id %>/bayar">Bayar</a>
+                  <% } else { %>
+                    <span class="small muted">Bayar di kasir</span>
+                  <% } %>
+                <% } %>
+                <a class="btn btn-ghost btn-sm" href="/warga/tagihan/<%= t.id %>/cetak" target="_blank" rel="noopener">Struk</a>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>

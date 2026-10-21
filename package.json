@@ -1,0 +1,28 @@
+{
+  "name": "tirtadesa",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TirtaDesa - aplikasi pengelolaan sumur bor (pelanggan, meter, tagihan, pembayaran, produksi air)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "db:reset": "node scripts/reset-db.js",
+    "test:smoke": "node scripts/smoke-test.js",
+    "test:penggajian": "node scripts/uji-penggajian.js",
+    "backup": "node scripts/backup.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.10.0",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "express-ejs-layouts": "^2.5.1",
+    "express-session": "^1.18.1",
+    "helmet": "^7.2.0",
+    "multer": "^2.0.2"
+  }
+}

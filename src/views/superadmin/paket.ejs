@@ -1,0 +1,148 @@
+<div class="page-head">
+  <div>
+    <h1>Paket Langganan</h1>
+    <p class="muted">
+      Atur harga dan batas pemakaian tiap paket. Batas <strong>0</strong> berarti tanpa batas.
+      Paket dipilih pendaftar saat mendaftar dan dapat diubah superadmin per pengelola.
+    </p>
+  </div>
+  <div class="page-actions">
+    <button class="btn btn-primary" type="button" data-modal-open="modalPaket">+ Tambah paket</button>
+    <a class="btn btn-ghost" href="/superadmin/langganan">Langganan pengelola</a>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="card kpi kpi-teal">
+    <span class="kpi-icon">📦</span>
+    <span class="kpi-label">Paket aktif</span>
+    <strong class="kpi-value"><%= angka(totalAktif) %></strong>
+    <span class="kpi-foot">Dari <%= angka(rows.length) %> paket</span>
+  </div>
+  <div class="card kpi kpi-blue">
+    <span class="kpi-icon">💰</span>
+    <span class="kpi-label">Pendapatan potensial</span>
+    <strong class="kpi-value"><%= rupiah(pendapatanPotensial) %></strong>
+    <span class="kpi-foot">Harga paket × jumlah pengelola</span>
+  </div>
+</div>
+
+<dialog class="modal" id="modalPaket">
+  <div class="modal-head">
+    <div>
+      <h2>Tambah paket</h2>
+      <span class="muted">Tentukan harga dan batas kuota.</span>
+    </div>
+    <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+  </div>
+  <div class="modal-body">
+    <form action="/superadmin/paket" method="post">
+      <div class="form-grid">
+        <div class="field"><label>Nama paket</label><input class="input" name="nama" required placeholder="Mis. Growth"></div>
+        <div class="field"><label>Kode</label><input class="input" name="kode" placeholder="Otomatis (mis. GROWTH)"></div>
+        <div class="field"><label>Harga / bulan (Rp)</label><input class="input" type="number" min="0" step="10000" name="harga" value="0"></div>
+        <div class="field"><label>Urutan tampil</label><input class="input" type="number" min="1" name="urutan" value="1"></div>
+        <div class="field"><label>Maks. pelanggan</label><input class="input" type="number" min="0" name="maks_pelanggan" value="0"><span class="small muted">0 = tanpa batas</span></div>
+        <div class="field"><label>Maks. sumur</label><input class="input" type="number" min="0" name="maks_sumur" value="0"><span class="small muted">0 = tanpa batas</span></div>
+        <div class="field"><label>Maks. dusun</label><input class="input" type="number" min="0" name="maks_dusun" value="0"><span class="small muted">0 = tanpa batas</span></div>
+        <div class="field span-2"><label>Deskripsi</label><input class="input" name="deskripsi" placeholder="Mis. untuk desa dengan beberapa dusun"></div>
+      </div>
+      <p class="small muted">
+        Kolom <strong>Dipakai pengelola</strong> pada daftar paket diisi otomatis dari jumlah pengelola
+        yang memakai paket ini — bukan isian formulir. Untuk menetapkan atau memindahkan paket
+        seorang pengelola, buka menu <a class="link" href="/superadmin/langganan">Langganan Pengelola</a>.
+      </p>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Simpan paket</button>
+        <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<section class="card">
+  <div class="table-wrap" data-hasil="daftar">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Kode</th>
+          <th>Paket</th>
+          <th class="num">Harga / bulan</th>
+          <th class="num">Pelanggan</th>
+          <th class="num">Sumur</th>
+          <th class="num">Dusun</th>
+          <th class="num" title="Jumlah pengelola yang memakai paket ini (dihitung otomatis)">Dipakai pengelola</th>
+          <th>Status</th>
+          <th class="col-aksi"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!rows.length) { %>
+          <tr><td colspan="9" class="empty-cell">Belum ada paket.</td></tr>
+        <% } %>
+        <% rows.forEach((p) => { %>
+          <tr>
+            <td class="small"><strong><%= p.kode %></strong></td>
+            <td>
+              <%= p.nama %>
+              <div class="small muted"><%= p.deskripsi || '-' %></div>
+            </td>
+            <td class="num"><%= rupiah(p.harga) %></td>
+            <td class="num"><%= p.maks_pelanggan ? angka(p.maks_pelanggan) : '∞' %></td>
+            <td class="num"><%= p.maks_sumur ? angka(p.maks_sumur) : '∞' %></td>
+            <td class="num"><%= p.maks_dusun ? angka(p.maks_dusun) : '∞' %></td>
+            <td class="num">
+              <% if (p.pengelola > 0) { %>
+                <a class="link" href="/superadmin/langganan" title="Atur paket tiap pengelola"><%= angka(p.pengelola) %></a>
+              <% } else { %>
+                <span class="muted">0</span>
+              <% } %>
+            </td>
+            <td><span class="badge <%= p.is_active ? 'badge-success' : 'badge-muted' %>"><%= p.is_active ? 'Aktif' : 'Nonaktif' %></span></td>
+            <td class="num col-aksi nowrap">
+              <button class="link" type="button" data-modal-open="modalPaket<%= p.id %>">Ubah</button>
+              <form action="/superadmin/paket/<%= p.id %>/toggle" method="post" style="display:inline;">
+                <button class="link" type="submit"><%= p.is_active ? 'Nonaktifkan' : 'Aktifkan' %></button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<% rows.forEach((p) => { %>
+  <dialog class="modal" id="modalPaket<%= p.id %>">
+    <div class="modal-head">
+      <div>
+        <h2>Ubah paket <%= p.nama %></h2>
+        <span class="muted">Dipakai <%= angka(p.pengelola) %> pengelola.</span>
+      </div>
+      <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+    </div>
+    <div class="modal-body">
+      <form action="/superadmin/paket/<%= p.id %>" method="post">
+        <div class="form-grid">
+          <div class="field"><label>Nama paket</label><input class="input" name="nama" value="<%= p.nama %>" required></div>
+          <div class="field"><label>Kode</label><input class="input" name="kode" value="<%= p.kode %>" required></div>
+          <div class="field"><label>Harga / bulan (Rp)</label><input class="input" type="number" min="0" step="10000" name="harga" value="<%= p.harga %>"></div>
+          <div class="field"><label>Urutan tampil</label><input class="input" type="number" min="1" name="urutan" value="<%= p.urutan %>"></div>
+          <div class="field"><label>Maks. pelanggan</label><input class="input" type="number" min="0" name="maks_pelanggan" value="<%= p.maks_pelanggan %>"></div>
+          <div class="field"><label>Maks. sumur</label><input class="input" type="number" min="0" name="maks_sumur" value="<%= p.maks_sumur %>"></div>
+          <div class="field"><label>Maks. dusun</label><input class="input" type="number" min="0" name="maks_dusun" value="<%= p.maks_dusun %>"></div>
+          <div class="field span-2"><label>Deskripsi</label><input class="input" name="deskripsi" value="<%= p.deskripsi || '' %>"></div>
+        </div>
+        <p class="small muted">
+          Batas 0 = tanpa batas. Perubahan kuota langsung berlaku untuk pengelola pemakai paket ini.
+          Jumlah <strong>pengelola</strong> (<%= angka(p.pengelola) %>) hanya informasi — bukan isian formulir;
+          atur di <a class="link" href="/superadmin/langganan">Langganan Pengelola</a>.
+        </p>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Simpan perubahan</button>
+          <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+<% }) %>

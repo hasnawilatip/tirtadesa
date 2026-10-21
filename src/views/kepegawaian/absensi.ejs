@@ -1,0 +1,223 @@
+<div class="page-head">
+  <div>
+    <h1>Absensi Karyawan</h1>
+    <p class="muted">
+      Absensi harian menjadi dasar potongan alpa dan upah lembur pada slip gaji.
+      Izin, sakit, dan cuti hanya dicatat, tidak dipotong.
+    </p>
+  </div>
+  <div class="page-actions">
+    <button class="btn btn-primary" type="button" data-modal-open="modalAbsensi">Catat absensi</button>
+    <button class="btn btn-ghost" type="button" data-modal-open="modalMassal">Isi cepat</button>
+    <a class="btn btn-ghost" href="/penggajian">Penggajian</a>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="card kpi kpi-teal">
+    <span class="kpi-icon">👷</span>
+    <span class="kpi-label">Karyawan aktif</span>
+    <strong class="kpi-value"><%= angka(rekap.length) %></strong>
+    <span class="kpi-foot">Periode ini</span>
+  </div>
+  <div class="card kpi kpi-blue">
+    <span class="kpi-icon">✅</span>
+    <span class="kpi-label">Total hadir</span>
+    <strong class="kpi-value"><%= angka(total.hadir) %></strong>
+    <span class="kpi-foot"><%= angka(total.tercatat) %> catatan absensi</span>
+  </div>
+  <div class="card kpi kpi-red">
+    <span class="kpi-icon">⚠️</span>
+    <span class="kpi-label">Tanpa keterangan</span>
+    <strong class="kpi-value"><%= angka(total.alpa) %></strong>
+    <span class="kpi-foot">Dipandang sebagai alpa</span>
+  </div>
+  <div class="card kpi kpi-amber">
+    <span class="kpi-icon">⏱️</span>
+    <span class="kpi-label">Jam lembur</span>
+    <strong class="kpi-value"><%= angka(total.lembur, 1) %></strong>
+    <span class="kpi-foot">Dibayar sesuai tarif lembur</span>
+  </div>
+</div>
+
+<section class="card no-print">
+  <form action="/absensi" method="get" class="filters">
+    <div class="field">
+      <label>Bulan</label>
+      <input class="input" type="month" name="bulan" value="<%= bulan %>">
+    </div>
+    <div class="field"><button class="btn btn-primary" type="submit">Tampilkan</button></div>
+  </form>
+</section>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Rekap bulan <span class="muted"><%= periodeLabel(tahun, bulanAngka) %></span></h2>
+    <span class="muted small"><%= hariDalamBulan %> hari</span>
+  </div>
+  <div class="table-wrap" data-hasil="rekap-absensi">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Karyawan</th>
+          <th class="col-dusun">Dusun</th>
+          <th class="num">Hadir</th>
+          <th class="num">Izin</th>
+          <th class="num">Sakit</th>
+          <th class="num">Cuti</th>
+          <th class="num">Alpa</th>
+          <th class="num">Lembur (jam)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!rekap.length) { %>
+          <tr><td colspan="8" class="empty-cell">Belum ada karyawan aktif.</td></tr>
+        <% } %>
+        <% rekap.forEach((r) => { %>
+          <tr>
+            <td><strong><%= r.nama %></strong><div class="small muted"><%= r.nomor %><%= r.jabatan ? ` · ${r.jabatan}` : '' %></div></td>
+            <td class="col-dusun"><%= r.dusun || 'Tingkat desa' %></td>
+            <td class="num text-success"><%= angka(r.hadir) %></td>
+            <td class="num"><%= angka(r.izin) %></td>
+            <td class="num"><%= angka(r.sakit) %></td>
+            <td class="num"><%= angka(r.cuti) %></td>
+            <td class="num <%= r.alpa ? 'text-danger' : '' %>"><strong><%= angka(r.alpa) %></strong></td>
+            <td class="num"><%= angka(r.lembur, 1) %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2">Total</td>
+          <td class="num"><%= angka(total.hadir) %></td>
+          <td colspan="4"></td>
+          <td class="num"><%= angka(total.lembur, 1) %></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Catatan absensi</h2>
+    <span class="muted small">Maksimal 300 catatan terbaru</span>
+  </div>
+  <div class="table-wrap" data-hasil="catatan-absensi">
+    <table class="table">
+      <thead><tr><th>Tanggal</th><th>Karyawan</th><th>Status</th><th>Jam</th><th class="num">Lembur</th><th>Keterangan</th><th class="col-aksi"></th></tr></thead>
+      <tbody>
+        <% if (!catatan.length) { %>
+          <tr><td colspan="7" class="empty-cell">Belum ada absensi pada bulan ini.</td></tr>
+        <% } %>
+        <% catatan.forEach((a) => { %>
+          <tr>
+            <td class="small"><%= tanggal(a.tanggal) %></td>
+            <td><%= a.karyawan %><div class="small muted"><%= a.nomor %></div></td>
+            <td><span class="badge <%= statusKelas(a.status) %>"><%= statusLabel[a.status] || a.status %></span></td>
+            <td class="small"><%= a.jam_masuk || '—' %><%= a.jam_keluar ? ` – ${a.jam_keluar}` : '' %></td>
+            <td class="num"><%= angka(a.lembur_jam, 1) %></td>
+            <td class="small"><%= a.keterangan || '—' %></td>
+            <td class="num col-aksi">
+              <form action="/absensi/<%= a.id %>/hapus" method="post" onsubmit="return confirm('Hapus catatan absensi ini?');">
+                <button class="link" type="submit">Hapus</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<dialog class="modal" id="modalAbsensi">
+  <div class="modal-head">
+    <div>
+      <h2>Catat absensi</h2>
+      <span class="muted">Satu karyawan, satu tanggal. Data tanggal yang sama akan diperbarui.</span>
+    </div>
+    <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+  </div>
+  <div class="modal-body">
+    <form action="/absensi" method="post">
+      <div class="form-grid">
+        <div class="field">
+          <label>Karyawan</label>
+          <select name="karyawan_id" required>
+            <% karyawanList.forEach((k) => { %>
+              <option value="<%= k.id %>"><%= k.nama %> · <%= k.nomor %><%= k.dusun ? ` · ${k.dusun}` : '' %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>Tanggal</label>
+          <input class="input" type="date" name="tanggal" value="<%= today %>" required>
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select name="status">
+            <option value="hadir">Hadir</option>
+            <option value="izin">Izin</option>
+            <option value="sakit">Sakit</option>
+            <option value="cuti">Cuti</option>
+            <option value="alpa">Tanpa keterangan (alpa)</option>
+            <option value="libur">Libur</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Jam lembur</label>
+          <input class="input" type="number" step="0.5" min="0" max="24" name="lembur_jam" value="0">
+        </div>
+        <div class="field">
+          <label>Jam masuk</label>
+          <input class="input" type="time" name="jam_masuk">
+        </div>
+        <div class="field">
+          <label>Jam keluar</label>
+          <input class="input" type="time" name="jam_keluar">
+        </div>
+        <div class="field span-2">
+          <label>Keterangan</label>
+          <input class="input" name="keterangan" placeholder="Mis. lembur perbaikan pompa">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Simpan absensi</button>
+        <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<dialog class="modal modal-sm" id="modalMassal">
+  <div class="modal-head">
+    <div>
+      <h2>Isi cepat absensi</h2>
+      <span class="muted">Tandai semua karyawan aktif pada satu tanggal.</span>
+    </div>
+    <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+  </div>
+  <div class="modal-body">
+    <form action="/absensi/massal" method="post">
+      <div class="form-grid">
+        <div class="field">
+          <label>Tanggal</label>
+          <input class="input" type="date" name="tanggal" value="<%= today %>" required>
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select name="status">
+            <option value="hadir">Hadir</option>
+            <option value="libur">Libur</option>
+            <option value="alpa">Tanpa keterangan (alpa)</option>
+          </select>
+        </div>
+      </div>
+      <p class="small muted">Karyawan yang sudah punya catatan pada tanggal tersebut dilewati.</p>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Isi sekarang</button>
+        <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+      </div>
+    </form>
+  </div>
+</dialog>

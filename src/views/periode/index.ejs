@@ -1,0 +1,151 @@
+<div class="page-head">
+  <div>
+    <h1>Periode &amp; Baca Meter</h1>
+    <p class="muted">Satu periode per bulan. Tagihan hanya dapat diterbitkan dari pembacaan yang sudah final.</p>
+  </div>
+  <% if (semua && !adaTerbuka) { %>
+    <div class="page-actions">
+      <button class="btn btn-primary" type="button" data-modal-open="modalPeriode">Buka periode baru</button>
+    </div>
+  <% } %>
+</div>
+
+<% if (typeof periodeDibuat !== 'undefined' && periodeDibuat) { %>
+  <div class="alert alert-success" data-flash>
+    <span>Periode <strong><%= periodeLabel(periodeDibuat.tahun, periodeDibuat.bulan) %></strong> dibuka otomatis karena sudah masuk bulan baru. Jatuh tempo <%= tanggal(periodeDibuat.tanggal_jatuh_tempo) %> — silakan mulai catat meter.</span>
+    <button type="button" class="alert-close" aria-label="Tutup">×</button>
+  </div>
+<% } %>
+
+<% if (typeof periodeUsang !== 'undefined' && periodeUsang) { %>
+  <div class="alert alert-warning">
+    <span>
+      Periode <strong><%= periodeLabel(periodeUsang.tahun, periodeUsang.bulan) %></strong> masih terbuka padahal bulan ini sudah berganti.
+      Tutup periode tersebut agar periode bulan berjalan bisa dibuat otomatis.
+      <% if (semua) { %>
+        <form action="/periode/<%= periodeUsang.id %>/tutup" method="post" style="display:inline" data-confirm="Tutup periode <%= periodeLabel(periodeUsang.tahun, periodeUsang.bulan) %>?">
+          <button class="btn btn-primary btn-sm" type="submit" style="margin-left:8px;">Tutup sekarang</button>
+        </form>
+      <% } %>
+    </span>
+  </div>
+<% } %>
+
+<% if (semua && adaTerbuka) { %>
+  <section class="card">
+    <div class="card-head">
+      <h2>Buka periode baru</h2>
+      <span class="badge badge-warning">Masih ada periode terbuka</span>
+    </div>
+    <p class="muted small">Tutup periode yang masih terbuka sebelum membuka periode baru.</p>
+  </section>
+<% } %>
+
+<% if (semua && !adaTerbuka) { %>
+  <dialog class="modal modal-sm" id="modalPeriode">
+    <div class="modal-head">
+      <h2>Buka periode baru</h2>
+      <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+    </div>
+    <div class="modal-body">
+      <form action="/periode" method="post">
+        <div class="field">
+          <label>Tahun</label>
+          <input class="input" type="number" name="tahun" value="<%= berikutnya.tahun %>" min="2020" max="2100" required>
+        </div>
+        <div class="field">
+          <label>Bulan</label>
+          <select name="bulan">
+            <% ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'].forEach((nm, i) => { %>
+              <option value="<%= i + 1 %>" <%= berikutnya.bulan === i + 1 ? 'selected' : '' %>><%= nm %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>Jatuh tempo</label>
+          <input class="input" type="date" name="tanggal_jatuh_tempo" id="jatuhTempoPeriode"
+            value="<%= jatuhTempoBawaan %>">
+          <span class="small muted">Otomatis tanggal 20 bulan berikutnya sesuai periode yang dipilih.</span>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Buka periode</button>
+          <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+  <script>
+    // Jatuh tempo mengikuti bulan/tahun periode: tanggal 20 bulan berikutnya.
+    (() => {
+      const form = document.getElementById('modalPeriode');
+      if (!form) return;
+      const tahun = form.querySelector('[name="tahun"]');
+      const bulan = form.querySelector('[name="bulan"]');
+      const tempo = document.getElementById('jatuhTempoPeriode');
+      const dua = (n) => String(n).padStart(2, '0');
+      const hitung = (th, bl) => {
+        const berikut = Number(bl) === 12 ? { th: Number(th) + 1, bl: 1 } : { th: Number(th), bl: Number(bl) + 1 };
+        return `${berikut.th}-${dua(berikut.bl)}-20`;
+      };
+      let manual = false;
+      tempo.addEventListener('change', () => { manual = true; });
+      const segarkan = () => {
+        if (manual) return;
+        const th = Number(tahun.value);
+        const bl = Number(bulan.value);
+        if (th && bl) tempo.value = hitung(th, bl);
+      };
+      tahun.addEventListener('input', segarkan);
+      bulan.addEventListener('change', segarkan);
+    })();
+  </script>
+<% } %>
+
+<section class="card">
+  <div class="card-head"><h2>Daftar periode</h2></div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Periode</th>
+          <th>Status</th>
+          <th>Progres baca</th>
+          <th class="num">Tagihan</th>
+          <th class="num">Nilai tagihan</th>
+          <th>Jatuh tempo</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% rows.forEach((p) => { %>
+          <% const persen = p.totalPelanggan ? Math.round((p.terbaca / p.totalPelanggan) * 100) : 0; %>
+          <tr>
+            <td class="nowrap"><strong><%= periodeLabel(p.tahun, p.bulan) %></strong></td>
+            <td><span class="badge <%= statusKelas(p.status) %>"><%= statusLabel[p.status] || p.status %></span></td>
+            <td style="min-width:150px;">
+              <div class="small"><%= p.terbaca %> / <%= p.totalPelanggan %> (<%= persen %>%)</div>
+              <div class="progress" style="margin-top:4px;"><span style="width:<%= persen %>%"></span></div>
+            </td>
+            <td class="num"><%= angka(p.tagihan) %></td>
+            <td class="num"><%= rupiah(p.nilai) %></td>
+            <td class="small"><%= tanggal(p.tanggal_jatuh_tempo) %></td>
+            <td>
+              <div class="btn-row" style="margin:0;">
+                <a class="btn btn-ghost btn-sm" href="/periode/<%= p.id %>/baca">Baca</a>
+                <% if (user.role === 'admin_desa' || user.role === 'admin_dusun') { %>
+                  <a class="btn btn-ghost btn-sm" href="/periode/<%= p.id %>/verifikasi">Verifikasi</a>
+                <% } %>
+                <a class="btn btn-ghost btn-sm" href="/tagihan?periode=<%= p.id %>">Tagihan</a>
+                <% if (semua && p.status !== 'tutup') { %>
+                  <form action="/periode/<%= p.id %>/tutup" method="post" data-confirm="Tutup periode ini? Data tidak dapat diubah lagi.">
+                    <button class="btn btn-dark btn-sm" type="submit">Tutup</button>
+                  </form>
+                <% } %>
+              </div>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>

@@ -1,0 +1,66 @@
+<div class="page-head">
+  <div>
+    <h1>Master Dusun</h1>
+    <p class="muted">Setiap dusun mengelola sumur dan pelanggannya sendiri.</p>
+  </div>
+  <div class="page-actions">
+    <button class="btn btn-primary" type="button" data-modal-open="modalDusun">Tambah dusun</button>
+  </div>
+</div>
+
+<dialog class="modal modal-sm" id="modalDusun">
+  <div class="modal-head">
+    <h2>Tambah dusun</h2>
+    <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+  </div>
+  <div class="modal-body">
+    <form action="/dusun" method="post">
+      <div class="field">
+        <label>Kode</label>
+        <input class="input" name="kode" value="<%= typeof kodeOtomatis !== 'undefined' ? kodeOtomatis : '' %>" placeholder="D04">
+        <span class="small muted">Dibuat otomatis oleh sistem, silakan ubah bila perlu.</span>
+      </div>
+      <div class="field"><label>Nama dusun</label><input class="input" name="nama" placeholder="Dusun Melati" required></div>
+      <div class="field"><label>Kepala dusun</label><input class="input" name="kepala_dusun" placeholder="Nama kepala dusun"></div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Tambah</button>
+        <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<div class="grid-2">
+  <% rows.forEach((d) => { %>
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h2><%= d.nama %></h2>
+          <span class="muted small">Kode <%= d.kode %> · <%= d.kepala_dusun || 'Kepala dusun belum diisi' %></span>
+        </div>
+        <span class="badge <%= d.is_active ? 'badge-success' : 'badge-muted' %>"><%= d.is_active ? 'Aktif' : 'Nonaktif' %></span>
+      </div>
+      <div class="report-grid">
+        <div class="report-box"><span>Sumur</span><strong><%= angka(d.sumur) %></strong></div>
+        <div class="report-box"><span>Pelanggan aktif</span><strong><%= angka(d.pelanggan) %></strong></div>
+        <div class="report-box"><span>Kode</span><strong><%= d.kode %></strong></div>
+      </div>
+      <details>
+        <summary class="link" style="cursor:pointer; font-size:.85rem;">Edit data dusun</summary>
+        <form action="/dusun/<%= d.id %>" method="post" class="form-grid" style="margin-top:12px;">
+          <div class="field"><label>Kode</label><input class="input" name="kode" value="<%= d.kode %>" placeholder="D04"></div>
+          <div class="field"><label>Nama</label><input class="input" name="nama" value="<%= d.nama %>" required></div>
+          <div class="field"><label>Kepala dusun</label><input class="input" name="kepala_dusun" value="<%= d.kepala_dusun || '' %>"></div>
+          <div class="field span-2">
+            <label><input type="checkbox" name="is_active" value="1" <%= d.is_active ? 'checked' : '' %>> Dusun aktif</label>
+          </div>
+          <div class="form-actions span-2"><button class="btn btn-primary btn-sm" type="submit">Simpan perubahan</button></div>
+        </form>
+      </details>
+      <div class="btn-row">
+        <a class="btn btn-ghost btn-sm" href="/pelanggan?dusun=<%= d.id %>">Lihat pelanggan</a>
+        <a class="btn btn-ghost btn-sm" href="/sumur?dusun=<%= d.id %>">Lihat sumur</a>
+      </div>
+    </section>
+  <% }) %>
+</div>

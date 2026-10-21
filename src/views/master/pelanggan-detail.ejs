@@ -1,0 +1,188 @@
+<div class="page-head">
+  <div>
+    <h1><%= row.nama %></h1>
+    <p class="muted"><%= row.nomor_pelanggan %> · <%= row.dusun %> · <span class="badge <%= row.status === 'aktif' ? 'badge-success' : 'badge-muted' %>"><%= statusLabel[row.status] || row.status %></span></p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-ghost" href="/pelanggan">Daftar pelanggan</a>
+    <% if (['admin_desa', 'admin_dusun'].includes(user.role)) { %>
+      <button class="btn btn-ghost" type="button" data-modal-open="modalGantiMeter">Ganti meter</button>
+    <% } %>
+    <a class="btn btn-primary" href="/pelanggan/<%= row.id %>/edit">Edit data</a>
+  </div>
+</div>
+
+<div class="grid-2">
+  <section class="card">
+    <div class="card-head"><h2>Data pelanggan</h2></div>
+    <div class="reading-meta">
+      <div class="meta-box"><span>Sumur sumber</span><strong><%= row.sumur || 'Belum ditentukan' %></strong></div>
+      <div class="meta-box"><span>Golongan tarif</span><strong><%= row.golongan ? `${row.golongan} (${row.golongan_kode})` : 'Belum ditentukan' %></strong></div>
+      <div class="meta-box"><span>Nomor meter</span><strong><%= meter ? meter.nomor_meter : '-' %></strong></div>
+      <div class="meta-box"><span>Nomor seri meter</span><strong><%= meter && meter.nomor_seri ? meter.nomor_seri : '-' %></strong></div>
+      <div class="meta-box"><span>Merk / tipe</span><strong><%= meter && (meter.merk || meter.tipe) ? [meter.merk, meter.tipe].filter(Boolean).join(' · ') : '-' %></strong></div>
+      <div class="meta-box"><span>Telepon</span><strong><%= row.telepon || '-' %></strong></div>
+      <div class="meta-box"><span>Alamat</span><strong><%= row.alamat || '-' %></strong></div>
+      <div class="meta-box"><span>Terdaftar</span><strong><%= tanggal(row.tanggal_daftar) %></strong></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Ringkasan tagihan</h2></div>
+    <div class="money-row">
+      <div><span class="muted small">Total tagihan</span><strong><%= rupiah(totalTagihan) %></strong></div>
+      <div><span class="muted small">Terbayar</span><strong class="text-success"><%= rupiah(totalBayar) %></strong></div>
+      <div><span class="muted small">Sisa</span><strong class="text-danger"><%= rupiah(totalTagihan - totalBayar) %></strong></div>
+    </div>
+    <p class="small muted"><%= tagihan.length %> tagihan tercatat, <%= pembacaan.length %> pembacaan meter terakhir ditampilkan.</p>
+  </section>
+</div>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Riwayat meter</h2>
+    <span class="muted small"><%= riwayatMeter.length %> meter terpasang</span>
+  </div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Nomor meter</th>
+          <th>Nomor seri</th>
+          <th>Merk / tipe</th>
+          <th>Status</th>
+          <th>Pasang</th>
+          <th>Lepas</th>
+          <th>Keterangan</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!riwayatMeter.length) { %><tr><td colspan="7" class="empty-cell">Belum ada meter.</td></tr><% } %>
+        <% riwayatMeter.forEach((m) => { %>
+          <tr>
+            <td><strong><%= m.nomor_meter %></strong></td>
+            <td class="small"><%= m.nomor_seri || '—' %></td>
+            <td class="small"><%= [m.merk, m.tipe].filter(Boolean).join(' · ') || '—' %></td>
+            <td><span class="badge <%= statusKelas(m.status) %>"><%= statusLabel[m.status] || m.status %></span></td>
+            <td class="small"><%= m.tanggal_pasang ? tanggal(m.tanggal_pasang) : '—' %></td>
+            <td class="small"><%= m.tanggal_lepas ? tanggal(m.tanggal_lepas) : '—' %></td>
+            <td class="small"><%= m.alasan_ganti || '—' %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-head"><h2>Riwayat tagihan</h2></div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>Periode</th><th>Nomor</th><th class="num">Pemakaian</th><th class="num">Total</th><th class="num">Terbayar</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        <% if (!tagihan.length) { %><tr><td colspan="7" class="empty-cell">Belum ada tagihan.</td></tr><% } %>
+        <% tagihan.forEach((t) => { %>
+          <tr>
+            <td><%= periodeLabel(t.tahun, t.bulan) %></td>
+            <td class="small"><%= t.nomor_tagihan %></td>
+            <td class="num"><%= angka(t.pemakaian_m3, 1) %> m³</td>
+            <td class="num"><%= rupiah(t.total) %></td>
+            <td class="num"><%= rupiah(t.terbayar) %></td>
+            <td><span class="badge <%= statusKelas(t.status) %>"><%= statusLabel[t.status] %></span></td>
+            <td class="num"><a class="link" href="/tagihan/<%= t.id %>">Detail</a></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="grid-2">
+  <section class="card">
+    <div class="card-head"><h2>Pembacaan meter</h2></div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Periode</th><th class="num">Awal</th><th class="num">Akhir</th><th class="num">Pakai</th><th>Status</th></tr></thead>
+        <tbody>
+          <% if (!pembacaan.length) { %><tr><td colspan="5" class="empty-cell">Belum ada pembacaan.</td></tr><% } %>
+          <% pembacaan.forEach((b) => { %>
+            <tr>
+              <td><%= periodeLabel(b.tahun, b.bulan) %></td>
+              <td class="num"><%= angka(b.angka_lalu, 1) %></td>
+              <td class="num"><%= angka(b.angka_kini, 1) %></td>
+              <td class="num"><%= angka(b.pemakaian_m3, 1) %></td>
+              <td><span class="badge <%= statusKelas(b.status) %>"><%= statusLabel[b.status] %></span></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Riwayat pembayaran</h2></div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Kwitansi</th><th>Tanggal</th><th class="num">Jumlah</th><th>Status</th></tr></thead>
+        <tbody>
+          <% if (!pembayaran.length) { %><tr><td colspan="4" class="empty-cell">Belum ada pembayaran.</td></tr><% } %>
+          <% pembayaran.forEach((b) => { %>
+            <tr>
+              <td><a class="link" href="/kwitansi/<%= b.id %>"><%= b.nomor_kwitansi %></a></td>
+              <td><%= tanggal(b.tanggal_bayar) %></td>
+              <td class="num"><%= rupiah(b.jumlah) %></td>
+              <td><span class="badge <%= b.status === 'valid' ? 'badge-success' : 'badge-danger' %>"><%= b.status === 'valid' ? 'Valid' : 'Batal' %></span></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<% if (['admin_desa', 'admin_dusun'].includes(user.role)) { %>
+  <dialog class="modal modal-sm" id="modalGantiMeter">
+    <div class="modal-head">
+      <div>
+        <h2>Ganti meter air</h2>
+        <span class="muted"><%= row.nomor_pelanggan %> · <%= row.nama %></span>
+      </div>
+      <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+    </div>
+    <div class="modal-body">
+      <form action="/pelanggan/<%= row.id %>/ganti-meter" method="post">
+        <div class="form-grid">
+          <div class="field span-2">
+            <label>Nomor seri meter baru</label>
+            <input class="input" name="nomor_seri" required placeholder="Nomor seri pabrik pada badan meter">
+          </div>
+          <div class="field"><label>Merk</label><input class="input" name="merk" placeholder="Itron / Zenner / dll."></div>
+          <div class="field"><label>Tipe</label><input class="input" name="tipe" placeholder="Multi-jet 0,5 inci"></div>
+          <div class="field">
+            <label>Tanggal pasang</label>
+            <input class="input" type="date" name="tanggal_pasang" value="<%= today %>" required>
+          </div>
+          <div class="field">
+            <label>Ukuran (inci)</label>
+            <input class="input" type="number" step="0.1" name="ukuran_inch"
+              value="<%= meter && meter.ukuran_inch ? meter.ukuran_inch : 0.5 %>">
+          </div>
+          <div class="field span-2">
+            <label>Alasan penggantian</label>
+            <input class="input" name="alasan" placeholder="Mis. meter rusak / macet">
+          </div>
+        </div>
+        <p class="small muted">
+          Meter lama (<%= meter ? meter.nomor_meter : '-' %>) akan dicatat berstatus <strong>Diganti</strong>,
+          lalu nomor meter baru dibuat otomatis oleh sistem.
+        </p>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Ganti meter</button>
+          <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+<% } %>

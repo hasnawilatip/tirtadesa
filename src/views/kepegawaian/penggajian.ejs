@@ -1,0 +1,183 @@
+<div class="page-head">
+  <div>
+    <h1>Penggajian</h1>
+    <p class="muted">Slip gaji bulanan dihitung dari gaji pokok, tunjangan, absensi, lembur, dan kasbon.</p>
+  </div>
+  <div class="page-actions">
+    <form action="/penggajian/buat" method="post">
+      <input type="hidden" name="bulan" value="<%= bulan %>">
+      <button class="btn btn-primary" type="submit" <%= belum.length ? '' : 'disabled' %>>
+        Buat slip (<%= angka(belum.length) %>)
+      </button>
+    </form>
+    <a class="btn btn-ghost" href="/absensi?bulan=<%= bulan %>">Absensi</a>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="card kpi kpi-teal">
+    <span class="kpi-icon">🧾</span>
+    <span class="kpi-label">Slip gaji</span>
+    <strong class="kpi-value"><%= angka(ringkas.jumlah) %></strong>
+    <span class="kpi-foot">Dibayar: <%= rupiah(ringkas.dibayar) %></span>
+  </div>
+  <div class="card kpi kpi-blue">
+    <span class="kpi-icon">💵</span>
+    <span class="kpi-label">Total pendapatan</span>
+    <strong class="kpi-value"><%= rupiah(ringkas.pendapatan) %></strong>
+    <span class="kpi-foot">Pokok + tunjangan + lembur</span>
+  </div>
+  <div class="card kpi kpi-amber">
+    <span class="kpi-icon">➖</span>
+    <span class="kpi-label">Total potongan</span>
+    <strong class="kpi-value"><%= rupiah(ringkas.potongan) %></strong>
+    <span class="kpi-foot">Alpa, potongan tetap, kasbon</span>
+  </div>
+  <div class="card kpi kpi-red">
+    <span class="kpi-icon">📤</span>
+    <span class="kpi-label">Gaji bersih</span>
+    <strong class="kpi-value"><%= rupiah(ringkas.bersih) %></strong>
+    <span class="kpi-foot">Belum dibayar: <%= rupiah(ringkas.draf) %></span>
+  </div>
+</div>
+
+<section class="card no-print">
+  <form action="/penggajian" method="get" class="filters">
+    <div class="field">
+      <label>Bulan</label>
+      <input class="input" type="month" name="bulan" value="<%= bulan %>">
+    </div>
+    <div class="field">
+      <label>Status</label>
+      <select name="status">
+        <option value="">Semua status</option>
+        <option value="draf" <%= filterStatus === 'draf' ? 'selected' : '' %>>Draf (belum dibayar)</option>
+        <option value="dibayar" <%= filterStatus === 'dibayar' ? 'selected' : '' %>>Sudah dibayar</option>
+      </select>
+    </div>
+    <div class="field"><button class="btn btn-primary" type="submit">Tampilkan</button></div>
+  </form>
+</section>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Slip gaji <span class="muted"><%= periodeLabel(tahun, bulanAngka) %></span></h2>
+    <span class="muted small"><%= rows.length %> slip</span>
+  </div>
+  <div class="table-wrap" data-hasil="penggajian">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Nomor</th>
+          <th>Karyawan</th>
+          <th class="num col-dusun">Hadir / Alpa</th>
+          <th class="num">Pendapatan</th>
+          <th class="num col-meter">Potongan</th>
+          <th class="num">Gaji bersih</th>
+          <th>Status</th>
+          <th class="col-aksi"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!rows.length) { %>
+          <tr><td colspan="8" class="empty-cell">Belum ada slip pada periode dan filter ini.</td></tr>
+        <% } %>
+        <% rows.forEach((p) => { %>
+          <tr>
+            <td class="small"><strong><%= p.nomor %></strong><div class="small muted"><%= p.metode ? `Bayar: ${p.metode}` : '' %></div></td>
+            <td>
+              <%= p.karyawan %>
+              <div class="small muted"><%= p.nomor_karyawan %><%= p.jabatan ? ` · ${p.jabatan}` : '' %><%= p.dusun ? ` · ${p.dusun}` : '' %></div>
+            </td>
+            <td class="num col-dusun"><%= angka(p.hari_hadir) %> / <span class="<%= p.hari_alpa ? 'text-danger' : '' %>"><%= angka(p.hari_alpa) %></span></td>
+            <td class="num"><%= rupiah(p.total_pendapatan) %></td>
+            <td class="num col-meter"><%= rupiah(p.total_potongan) %></td>
+            <td class="num"><strong><%= rupiah(p.gaji_bersih) %></strong></td>
+            <td>
+              <span class="badge <%= statusKelas(p.status) %>"><%= statusLabel[p.status] || p.status %></span>
+              <% if (p.status === 'dibayar' && p.tanggal_bayar) { %>
+                <div class="small muted"><%= tanggal(p.tanggal_bayar) %></div>
+              <% } %>
+            </td>
+            <td class="num col-aksi nowrap">
+              <a class="link" href="/penggajian/<%= p.id %>/cetak">Cetak</a>
+              <% if (p.status === 'draf') { %>
+                <button class="link" type="button" data-modal-open="modalBayar<%= p.id %>">Bayar</button>
+                <form action="/penggajian/<%= p.id %>/hitung" method="post">
+                  <button class="link" type="submit">Hitung ulang</button>
+                </form>
+                <form action="/penggajian/<%= p.id %>/hapus" method="post" onsubmit="return confirm('Hapus slip draf ini?');">
+                  <button class="link" type="submit">Hapus</button>
+                </form>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<% if (belum.length) { %>
+  <section class="card no-print">
+    <div class="card-head">
+      <h2>Belum dibuatkan slip</h2>
+      <span class="muted small"><%= belum.length %> karyawan aktif</span>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Karyawan</th><th class="col-dusun">Dusun</th></tr></thead>
+        <tbody>
+          <% belum.forEach((k) => { %>
+            <tr>
+              <td><%= k.nama %><div class="small muted"><%= k.nomor %><%= k.jabatan ? ` · ${k.jabatan}` : '' %></div></td>
+              <td class="col-dusun"><%= k.dusun || 'Tingkat desa' %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <p class="small muted">Tombol <strong>Buat slip</strong> di atas membuat draf untuk seluruh karyawan aktif yang belum punya slip pada periode ini. Slip draf dapat dihitung ulang bila absensi berubah.</p>
+  </section>
+<% } %>
+
+<% rows.filter((p) => p.status === 'draf').forEach((p) => { %>
+  <dialog class="modal modal-sm" id="modalBayar<%= p.id %>">
+    <div class="modal-head">
+      <div>
+        <h2>Bayar slip gaji</h2>
+        <span class="muted"><%= p.nomor %> · <%= p.karyawan %> · <%= rupiah(p.gaji_bersih) %></span>
+      </div>
+      <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+    </div>
+    <div class="modal-body">
+      <form action="/penggajian/<%= p.id %>/bayar" method="post">
+        <div class="form-grid">
+          <div class="field">
+            <label>Tanggal bayar</label>
+            <input class="input" type="date" name="tanggal_bayar" value="<%= today %>" required>
+          </div>
+          <div class="field">
+            <label>Metode</label>
+            <select name="metode">
+              <option value="tunai">Tunai</option>
+              <option value="transfer">Transfer</option>
+              <option value="lain">Lain</option>
+            </select>
+          </div>
+          <div class="field span-2">
+            <label>Catatan</label>
+            <input class="input" name="catatan" placeholder="Opsional">
+          </div>
+        </div>
+        <% if (p.potongan_kasbon > 0) { %>
+          <p class="small muted">Potongan kasbon <%= rupiah(p.potongan_kasbon) %> akan otomatis dicatat sebagai pembayaran kasbon karyawan.</p>
+        <% } %>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Tandai dibayar</button>
+          <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+<% }) %>

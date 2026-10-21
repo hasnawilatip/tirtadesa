@@ -1,0 +1,177 @@
+<div class="page-head">
+  <div>
+    <h1>Pembayaran Online</h1>
+    <p class="muted">
+      Permintaan pembayaran dari portal warga. Setelah bukti bayar sesuai, lakukan
+      <strong>verifikasi</strong> agar otomatis menjadi kwitansi resmi dan status tagihan diperbarui.
+    </p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-ghost" href="/tagihan">Daftar tagihan</a>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="card kpi kpi-amber">
+    <span class="kpi-icon">⏳</span>
+    <span class="kpi-label">Menunggu verifikasi</span>
+    <strong class="kpi-value"><%= angka(ringkas.menunggu) %></strong>
+    <span class="kpi-foot"><%= rupiah(ringkas.nilai_menunggu) %></span>
+  </div>
+  <div class="card kpi kpi-teal">
+    <span class="kpi-icon">✅</span>
+    <span class="kpi-label">Terkonfirmasi</span>
+    <strong class="kpi-value"><%= angka(ringkas.dikonfirmasi) %></strong>
+    <span class="kpi-foot">Sudah menjadi kwitansi</span>
+  </div>
+  <div class="card kpi kpi-blue">
+    <span class="kpi-icon">🧾</span>
+    <span class="kpi-label">Total permintaan</span>
+    <strong class="kpi-value"><%= angka(ringkas.total) %></strong>
+    <span class="kpi-foot">Seluruh status</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <a class="tab <%= status === 'menunggu' ? 'active' : '' %>" href="/pembayaran-online?status=menunggu">Menunggu verifikasi</a>
+  <a class="tab <%= status === 'dikonfirmasi' ? 'active' : '' %>" href="/pembayaran-online?status=dikonfirmasi">Terkonfirmasi</a>
+  <a class="tab <%= status === 'ditolak' ? 'active' : '' %>" href="/pembayaran-online?status=ditolak">Ditolak</a>
+  <a class="tab <%= status === 'semua' ? 'active' : '' %>" href="/pembayaran-online?status=semua">Semua</a>
+</div>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Daftar permintaan</h2>
+    <span class="muted small"><%= rows.length %> data</span>
+  </div>
+
+  <% if (!rows.length) { %>
+    <div class="empty"><p>Tidak ada permintaan pembayaran pada filter ini.</p></div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Kode / Waktu</th>
+            <th>Pelanggan</th>
+            <th>Periode</th>
+            <th class="num">Jumlah</th>
+            <th>Saluran</th>
+            <th>Bukti</th>
+            <th>Status</th>
+            <th class="col-aksi">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% rows.forEach((r) => { %>
+            <tr>
+              <td>
+                <strong><%= r.kode %></strong>
+                <div class="small muted"><%= tanggal(r.created_at) %> · <%= r.dusun %></div>
+              </td>
+              <td>
+                <%= r.pelanggan %>
+                <div class="small muted"><%= r.nomor_pelanggan %> · <%= r.nomor_tagihan %></div>
+              </td>
+              <td class="small"><%= periodeLabel(r.tahun, r.bulan) %></td>
+              <td class="num">
+                <%= rupiah(r.jumlah) %>
+                <div class="small muted">Sisa <%= rupiah(r.total - r.terbayar) %></div>
+              </td>
+              <td class="small">
+                <%= r.saluran || '-' %>
+                <div class="muted"><%= jenisLabel[r.jenis_saluran] || '' %></div>
+              </td>
+              <td class="small">
+                <% if (r.bukti_path) { %>
+                  <a class="link" href="<%= r.bukti_path %>" target="_blank" rel="noopener">Lihat bukti</a>
+                <% } else { %>
+                  <span class="muted">Belum ada</span>
+                <% } %>
+                <% if (r.catatan_warga) { %><div class="muted wrap-any"><%= r.catatan_warga %></div><% } %>
+              </td>
+              <td>
+                <span class="badge <%= r.status === 'dikonfirmasi' ? 'badge-success' : (r.status === 'ditolak' ? 'badge-danger' : 'badge-warning') %>">
+                  <%= statusLabel[r.status] || r.status %>
+                </span>
+                <% if (r.catatan_admin) { %><div class="small muted wrap-any"><%= r.catatan_admin %></div><% } %>
+              </td>
+              <td class="col-aksi nowrap">
+                <% if (r.status === 'menunggu' && bolehKelola) { %>
+                  <button class="btn btn-primary btn-sm" type="button" data-modal-open="modalVerifikasi<%= r.id %>">Verifikasi</button>
+                  <button class="link text-danger" type="button" data-modal-open="modalTolak<%= r.id %>">Tolak</button>
+                <% } else if (r.pembayaran_id) { %>
+                  <a class="btn btn-ghost btn-sm" href="/kwitansi/<%= r.pembayaran_id %>">Kwitansi</a>
+                <% } else { %>
+                  <span class="muted small">—</span>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>
+
+<% rows.forEach((r) => { %>
+  <% if (r.status === 'menunggu' && bolehKelola) { %>
+    <dialog class="modal modal-sm" id="modalVerifikasi<%= r.id %>">
+      <div class="modal-head">
+        <div>
+          <h2>Verifikasi pembayaran</h2>
+          <span class="muted"><%= r.kode %> · <%= r.pelanggan %></span>
+        </div>
+        <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+      </div>
+      <div class="modal-body">
+        <form action="/pembayaran-online/<%= r.id %>/verifikasi" method="post">
+          <div class="form-grid">
+            <div class="field">
+              <label>Jumlah diterima (Rp)</label>
+              <input class="input" type="number" step="0.01" min="0.01" name="jumlah"
+                value="<%= Math.round((r.jumlah || (r.total - r.terbayar)) * 100) / 100 %>" required>
+              <span class="small muted">Sisa tagihan <%= rupiah(r.total - r.terbayar) %>.</span>
+            </div>
+            <div class="field">
+              <label>Tanggal bayar</label>
+              <input class="input" type="date" name="tanggal_bayar" value="<%= today %>" required>
+            </div>
+            <div class="field span-2">
+              <label>Catatan verifikasi</label>
+              <input class="input" name="catatan_admin" placeholder="Mis. dana masuk sesuai mutasi bank">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" type="submit">Verifikasi &amp; buat kwitansi</button>
+            <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+
+    <dialog class="modal modal-sm" id="modalTolak<%= r.id %>">
+      <div class="modal-head">
+        <div>
+          <h2>Tolak permintaan</h2>
+          <span class="muted"><%= r.kode %></span>
+        </div>
+        <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+      </div>
+      <div class="modal-body">
+        <form action="/pembayaran-online/<%= r.id %>/tolak" method="post">
+          <div class="field">
+            <label>Alasan penolakan</label>
+            <textarea class="input" name="catatan_admin" rows="3" required
+              placeholder="Mis. nominal tidak sesuai atau bukti tidak terbaca"></textarea>
+            <span class="small muted">Alasan tampil di halaman pembayaran warga.</span>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-danger" type="submit">Tolak permintaan</button>
+            <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+  <% } %>
+<% }) %>

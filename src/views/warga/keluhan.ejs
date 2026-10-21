@@ -1,0 +1,73 @@
+<div class="page-head">
+  <div>
+    <h1>Keluhan</h1>
+    <p class="muted">
+      <% if (pelanggan) { %>Laporkan gangguan air atau meter untuk <%= pelanggan.nomor_pelanggan %> · <%= pelanggan.nama %><% } else { %>Akun belum ditautkan ke pelanggan.<% } %>
+    </p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-ghost" href="/warga">← Ringkasan</a>
+    <% if (pelanggan) { %><button class="btn btn-primary" type="button" data-modal-open="modalKeluhanWarga">Ajukan keluhan</button><% } %>
+  </div>
+</div>
+
+<% if (pelanggan) { %>
+<dialog class="modal modal-sm" id="modalKeluhanWarga">
+  <div class="modal-head">
+    <div>
+      <h2>Ajukan keluhan</h2>
+      <span class="muted"><%= pelanggan.nomor_pelanggan %> · <%= pelanggan.nama %></span>
+    </div>
+    <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+  </div>
+  <div class="modal-body">
+    <form action="/warga/keluhan" method="post">
+      <div class="form-grid">
+        <div class="field span-2">
+          <label>Kategori</label>
+          <select name="kategori">
+            <% kategoriList.forEach((k) => { %><option value="<%= k %>"><%= k %></option><% }) %>
+          </select>
+        </div>
+        <div class="field span-2">
+          <label>Uraian keluhan</label>
+          <textarea class="input" name="deskripsi" rows="3" minlength="5" required
+            placeholder="Contoh: air tidak mengalir sejak pagi di RT 02"></textarea>
+        </div>
+        <div class="field span-2">
+          <label>Telepon yang bisa dihubungi</label>
+          <input class="input" name="telepon" value="<%= pelanggan.telepon || '' %>" placeholder="08xxxxxxxxxx">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Kirim keluhan</button>
+        <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+<% } %>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Riwayat keluhan</h2>
+    <span class="muted small"><%= rows.length %> keluhan</span>
+  </div>
+  <% if (!rows.length) { %>
+    <div class="empty"><p>Belum ada keluhan.</p></div>
+  <% } else { %>
+    <% rows.forEach((k) => { %>
+      <div class="meta-box" style="margin-bottom:10px;">
+        <div class="btn-row" style="justify-content:space-between;margin:0 0 6px;">
+          <strong><%= k.kategori %></strong>
+          <span class="badge <%= statusKelas(k.status) %>"><%= statusLabel[k.status] || k.status %></span>
+        </div>
+        <p style="margin:0 0 6px;"><%= k.deskripsi %></p>
+        <div class="small muted">
+          Dilaporkan <%= tanggal(k.tanggal_lapor) %>
+          <% if (k.tindak_lanjut) { %> · Tindak lanjut: <%= k.tindak_lanjut %><% } %>
+        </div>
+      </div>
+    <% }) %>
+  <% } %>
+</section>

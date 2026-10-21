@@ -1,0 +1,110 @@
+<div class="print-actions no-print">
+  <a class="btn btn-ghost" href="/penggajian?bulan=<%= slip.tahun %>-<%= String(slip.bulan).padStart(2, '0') %>">Kembali</a>
+  <button class="btn btn-primary" type="button" onclick="window.print()">Cetak slip</button>
+</div>
+
+<div class="kwitansi-page">
+  <div class="kwitansi-head">
+    <div class="kwitansi-brand">
+      <% const logoSrc = (pemberi && pemberi.logo_path) || pengaturan.logo_path; %>
+      <% if (logoSrc) { %>
+        <img class="kwitansi-logo" src="<%= logoSrc %>" alt="Logo <%= (pemberi && pemberi.nama) || pengaturan.nama_aplikasi %>">
+      <% } %>
+      <div>
+        <h1><%= ((pemberi && pemberi.nama) || pengaturan.nama_aplikasi).toUpperCase() %></h1>
+        <% if (pemberi && pemberi.pelaku_usaha) { %><div class="small muted">Pelaku usaha: <%= pemberi.pelaku_usaha %></div><% } %>
+        <div class="small muted">Slip Gaji Karyawan</div>
+        <% if (pemberi && (pemberi.kecamatan || pemberi.kabupaten)) { %>
+          <div class="small muted"><%= [pemberi.kecamatan, pemberi.kabupaten].filter(Boolean).join(' · ') %></div>
+        <% } %>
+        <% if (pemberi && pemberi.alamat) { %><div class="small muted"><%= pemberi.alamat %></div><% } %>
+        <% if (pemberi && pemberi.telepon) { %><div class="small muted"><%= pemberi.telepon %></div><% } %>
+      </div>
+    </div>
+    <div style="text-align:right;">
+      <div class="small muted">Nomor</div>
+      <strong><%= slip.nomor %></strong>
+      <div class="small muted" style="margin-top:4px;">Periode <%= periodeLabel(slip.tahun, slip.bulan) %></div>
+      <% if (slip.status !== 'dibayar') { %>
+        <div class="badge badge-warning" style="margin-top:6px;">DRAF</div>
+      <% } %>
+    </div>
+  </div>
+
+  <table class="kwitansi-table">
+    <tr><td>Nama karyawan</td><td><strong><%= karyawan.nama %></strong></td></tr>
+    <tr><td>Nomor karyawan</td><td><%= karyawan.nomor %></td></tr>
+    <tr><td>Jabatan</td><td><%= karyawan.jabatan || '—' %></td></tr>
+    <tr><td>Dusun</td><td><%= karyawan.dusun || 'Tingkat desa' %></td></tr>
+    <% if (karyawan.nik) { %><tr><td>NIK</td><td><%= karyawan.nik %></td></tr><% } %>
+    <% if (karyawan.rekening) { %><tr><td>Pembayaran ke</td><td><%= karyawan.rekening %></td></tr><% } %>
+    <tr>
+      <td>Rekap absensi</td>
+      <td class="small">
+        Hadir <%= angka(slip.hari_hadir) %> · Izin <%= angka(slip.hari_izin) %> · Sakit <%= angka(slip.hari_sakit) %>
+        · Cuti <%= angka(slip.hari_cuti) %> · Alpa <%= angka(slip.hari_alpa) %> · Lembur <%= angka(slip.lembur_jam, 1) %> jam
+      </td>
+    </tr>
+  </table>
+
+  <table class="kwitansi-table">
+    <tr><td>Gaji pokok</td><td><%= rupiah(slip.gaji_pokok) %></td></tr>
+    <tr><td>Tunjangan tetap</td><td><%= rupiah(slip.tunjangan) %></td></tr>
+    <tr>
+      <td>Upah lembur (<%= angka(slip.lembur_jam, 1) %> jam)</td>
+      <td><%= rupiah(slip.upah_lembur) %></td>
+    </tr>
+    <% if (slip.bonus) { %><tr><td>Bonus</td><td><%= rupiah(slip.bonus) %></td></tr><% } %>
+    <tr>
+      <td><strong>Total pendapatan</strong></td>
+      <td><strong><%= rupiah(slip.total_pendapatan) %></strong></td>
+    </tr>
+  </table>
+
+  <table class="kwitansi-table">
+    <tr>
+      <td>Potongan alpa (<%= angka(slip.hari_alpa) %> hari × <%= rupiah(potonganHarian) %>)</td>
+      <td><%= rupiah(slip.potongan_alpa) %></td>
+    </tr>
+    <% if (slip.potongan_tetap) { %>
+      <tr><td>Potongan tetap</td><td><%= rupiah(slip.potongan_tetap) %></td></tr>
+    <% } %>
+    <% if (slip.potongan_kasbon) { %>
+      <tr><td>Potongan kasbon</td><td><%= rupiah(slip.potongan_kasbon) %></td></tr>
+    <% } %>
+    <tr>
+      <td><strong>Total potongan</strong></td>
+      <td><strong><%= rupiah(slip.total_potongan) %></strong></td>
+    </tr>
+    <tr>
+      <td><strong>GAJI BERSIH</strong></td>
+      <td class="kwitansi-total"><%= rupiah(slip.gaji_bersih) %></td>
+    </tr>
+  </table>
+
+  <p class="small" style="margin-top:10px;">
+    Terbilang: <strong><%= terbilang(slip.gaji_bersih) %> rupiah</strong>
+  </p>
+  <% if (slip.status === 'dibayar') { %>
+    <p class="small muted" style="margin-top:4px;">
+      Dibayar <%= tanggal(slip.tanggal_bayar) %> melalui <%= slip.metode || 'tunai' %>.
+      <% if (slip.catatan) { %><%= slip.catatan %><% } %>
+    </p>
+  <% } else { %>
+    <p class="small muted" style="margin-top:4px;">Slip ini masih berstatus draf dan belum dibayar.</p>
+  <% } %>
+
+  <div style="display:flex;justify-content:space-between;margin-top:48px;gap:24px;text-align:center;">
+    <div style="flex:1;">
+      <div class="small muted">Diterima oleh</div>
+      <div style="height:56px;"></div>
+      <strong><%= karyawan.nama %></strong>
+    </div>
+    <div style="flex:1;">
+      <div class="small muted"><%= tanggal(slip.tanggal_bayar || today) %></div>
+      <div class="small muted">Pemberi</div>
+      <div style="height:52px;"></div>
+      <strong><%= (pemberi && pemberi.pelaku_usaha) || 'Pengelola' %></strong>
+    </div>
+  </div>
+</div>

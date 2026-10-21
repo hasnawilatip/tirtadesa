@@ -1,0 +1,146 @@
+<div class="page-head">
+  <div>
+    <h1><%= tagihan.nomor_tagihan %></h1>
+    <p class="muted">
+      <%= periodeLabel(tagihan.tahun, tagihan.bulan) %> ·
+      <span class="badge <%= statusKelas(tagihan.status) %>"><%= statusLabel[tagihan.status] %></span>
+    </p>
+  </div>
+  <div class="page-actions">
+    <% if (bolehBayar) { %>
+      <button class="btn btn-primary" type="button" data-modal-open="modalBayar">Catat pembayaran</button>
+    <% } %>
+    <a class="btn btn-ghost" href="/tagihan/<%= tagihan.id %>/cetak" target="_blank" rel="noopener">Cetak struk</a>
+    <a class="btn btn-ghost" href="/tagihan">Daftar tagihan</a>
+    <a class="btn btn-ghost" href="/pelanggan/<%= tagihan.pelanggan_id %>">Data pelanggan</a>
+  </div>
+</div>
+
+<div class="grid-2">
+  <section class="card">
+    <div class="card-head"><h2>Informasi tagihan</h2></div>
+    <div class="reading-meta">
+      <div class="meta-box"><span>Pelanggan</span><strong><%= tagihan.nama %></strong></div>
+      <div class="meta-box"><span>Nomor / Meter</span><strong><%= tagihan.nomor_pelanggan %> · <%= tagihan.nomor_meter || '-' %></strong></div>
+      <div class="meta-box"><span>Dusun</span><strong><%= tagihan.dusun %></strong></div>
+      <div class="meta-box"><span>Jatuh tempo</span><strong><%= tanggal(tagihan.jatuh_tempo) %></strong></div>
+      <div class="meta-box"><span>Tanggal terbit</span><strong><%= tanggal(tagihan.tanggal_terbit) %></strong></div>
+      <div class="meta-box"><span>Pemakaian</span><strong><%= angka(tagihan.pemakaian_m3, 1) %> m³</strong></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Ringkasan</h2></div>
+    <div class="money-row">
+      <div><span class="muted small">Total</span><strong><%= rupiah(tagihan.total) %></strong></div>
+      <div><span class="muted small">Terbayar</span><strong class="text-success"><%= rupiah(tagihan.terbayar) %></strong></div>
+      <div><span class="muted small">Sisa</span><strong class="text-danger"><%= rupiah(tagihan.total - tagihan.terbayar) %></strong></div>
+    </div>
+    <% if (tagihan.status === 'lunas') { %>
+      <div class="alert alert-success" style="margin:0;"><span>Tagihan sudah lunas.</span></div>
+    <% } else if (tagihan.status === 'batal') { %>
+      <div class="alert alert-error" style="margin:0;"><span>Tagihan dibatalkan.</span></div>
+    <% } %>
+  </section>
+</div>
+
+<section class="card">
+  <div class="card-head"><h2>Rincian tagihan</h2></div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Uraian</th><th class="num">Qty</th><th class="num">Harga</th><th class="num">Subtotal</th></tr></thead>
+      <tbody>
+        <% items.forEach((it) => { %>
+          <tr>
+            <td><%= it.keterangan || it.jenis %></td>
+            <td class="num"><%= angka(it.qty, it.jenis === 'pemakaian' ? 1 : 0) %></td>
+            <td class="num"><%= rupiah(it.harga_satuan) %></td>
+            <td class="num"><%= rupiah(it.subtotal) %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3">Total tagihan</td>
+          <td class="num"><%= rupiah(tagihan.total) %></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</section>
+
+<% if (!bolehBayar) { %>
+  <section class="card">
+    <p class="muted small">Tidak ada pembayaran yang dapat dicatat untuk tagihan ini.</p>
+  </section>
+<% } else { %>
+  <dialog class="modal modal-sm" id="modalBayar">
+    <div class="modal-head">
+      <div>
+        <h2>Catat pembayaran</h2>
+        <span class="muted"><%= tagihan.nomor_tagihan %></span>
+      </div>
+      <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+    </div>
+    <div class="modal-body">
+      <form action="/tagihan/<%= tagihan.id %>/bayar" method="post">
+        <div class="form-grid">
+          <div class="field">
+            <label>Jumlah bayar</label>
+            <input class="input" type="number" step="0.01" name="jumlah" min="0.01"
+              value="<%= Math.round((tagihan.total - tagihan.terbayar) * 100) / 100 %>" required>
+          </div>
+          <div class="field">
+            <label>Metode</label>
+            <select name="metode">
+              <option value="tunai">Tunai</option>
+              <option value="transfer">Transfer</option>
+              <option value="qris">QRIS</option>
+              <option value="lain">Lain-lain</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Tanggal bayar</label>
+            <input class="input" type="date" name="tanggal_bayar" value="<%= today %>" required>
+          </div>
+          <div class="field">
+            <label>Catatan</label>
+            <input class="input" name="catatan" placeholder="Opsional">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Simpan &amp; cetak kwitansi</button>
+          <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+<% } %>
+
+<section class="card">
+  <div class="card-head"><h2>Riwayat pembayaran</h2></div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Kwitansi</th><th>Tanggal</th><th class="num">Jumlah</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          <% if (!pembayaran.length) { %><tr><td colspan="5" class="empty-cell">Belum ada pembayaran.</td></tr><% } %>
+          <% pembayaran.forEach((b) => { %>
+            <tr>
+              <td><a class="link" href="/kwitansi/<%= b.id %>"><%= b.nomor_kwitansi %></a><div class="small muted"><%= b.kasir || '-' %></div></td>
+              <td><%= tanggal(b.tanggal_bayar) %></td>
+              <td class="num"><%= rupiah(b.jumlah) %></td>
+              <td><span class="badge <%= b.status === 'valid' ? 'badge-success' : 'badge-danger' %>"><%= b.status === 'valid' ? 'Valid' : 'Batal' %></span></td>
+              <td class="num">
+                <% if (adminDesa && b.status === 'valid') { %>
+                  <form action="/pembayaran/<%= b.id %>/batal" method="post" data-confirm="Batalkan pembayaran ini?">
+                    <input type="hidden" name="alasan" value="Dibatalkan dari halaman tagihan">
+                    <button class="btn btn-ghost btn-sm" type="submit">Batal</button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </section>

@@ -1,0 +1,306 @@
+<% const jamSekarang = new Date().getHours(); %>
+<% const sapaan = jamSekarang < 11 ? 'Selamat pagi' : (jamSekarang < 15 ? 'Selamat siang' : (jamSekarang < 18 ? 'Selamat sore' : 'Selamat malam')); %>
+<% const adminDesa = user.role === 'admin_desa'; %>
+<% const adminDusun = user.role === 'admin_dusun'; %>
+<% const bisaCatatMeter = ['admin_desa', 'admin_dusun', 'petugas_catat'].includes(user.role); %>
+<% const bisaVerifikasi = ['admin_desa', 'admin_dusun'].includes(user.role); %>
+
+<section class="dash-hero">
+  <div>
+    <h1><%= sapaan %>, <%= user.nama.split(' ')[0] %> 👋</h1>
+    <p>
+      Ringkasan layanan air bersih <%= semua ? 'seluruh desa' : 'Dusun ' + (user.dusun_nama || '') %>
+      · <%= periodeBerjalan ? periodeLabel(periodeBerjalan.tahun, periodeBerjalan.bulan) : 'Belum ada periode terbuka' %>
+    </p>
+    <div class="hero-chips">
+      <div class="hero-chip"><strong><%= angka(pelangganAktif) %></strong><span>Pelanggan aktif</span></div>
+      <div class="hero-chip"><strong><%= periodeBerjalan ? progressBaca + '%' : '—' %></strong><span>Progres baca</span></div>
+      <div class="hero-chip"><strong><%= rupiah(tunggakan.total) %></strong><span>Tunggakan</span></div>
+      <% if (langganan && langganan.paket) { %>
+        <div class="hero-chip"><strong><%= langganan.paket.nama %></strong><span>Paket langganan</span></div>
+      <% } %>
+    </div>
+  </div>
+  <div class="hero-actions">
+    <% if (periodeBerjalan && bisaCatatMeter) { %>
+      <a class="btn btn-primary" href="/periode/<%= periodeBerjalan.id %>/baca">Catat meter</a>
+    <% } %>
+    <% if (!bisaCatatMeter) { %>
+      <a class="btn btn-primary" href="/tagihan">Tagihan &amp; pembayaran</a>
+    <% } %>
+    <a class="btn btn-ghost" href="/laporan">Lihat laporan</a>
+  </div>
+</section>
+
+<% if (langganan) { %>
+  <section class="card langganan-kartu">
+    <div class="card-head">
+      <h2>Langganan &amp; kuota</h2>
+      <span class="muted small">
+        <%= langganan.paket ? `${langganan.paket.nama} · ${rupiah(langganan.paket.harga)}/bulan` : 'Belum ada paket' %>
+        <% if (langganan.desa.langganan_sampai) { %>
+          · berakhir <%= tanggal(langganan.desa.langganan_sampai) %>
+        <% } %>
+        <% if (user.role === 'admin_desa' || user.role === 'admin_dusun') { %>
+          · <a class="link" href="/langganan">Lihat detail</a>
+        <% } %>
+      </span>
+    </div>
+    <div class="kuota-grid">
+      <% [['pelanggan', 'Pelanggan'], ['sumur', 'Sumur'], ['dusun', 'Dusun']].forEach(([jenis, label]) => { %>
+        <% const batas = langganan.batas[jenis]; const pakai = langganan.dipakai[jenis]; %>
+        <% const persen = batas > 0 ? Math.min(100, Math.round((pakai / batas) * 100)) : 0; %>
+        <div class="kuota-item">
+          <div class="kuota-label">
+            <span><%= label %></span>
+            <strong><%= angka(pakai) %><span class="muted">/<%= batas || '∞' %></span></strong>
+          </div>
+          <div class="kuota-bar <%= batas > 0 && persen >= 100 ? 'penuh' : (batas > 0 && persen >= 90 ? 'hampir' : '') %>">
+            <span style="width:<%= batas > 0 ? persen : 4 %>%;"></span>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+    <% if (langganan.peringatan.length) { %>
+      <div class="alert alert-warning" style="margin:12px 0 0;">
+        <span><%= langganan.peringatan.join(' ') %></span>
+      </div>
+    <% } %>
+  </section>
+<% } %>
+
+<div class="kpi-grid">
+  <div class="card kpi kpi-teal">
+    <span class="kpi-icon">👥</span>
+    <span class="kpi-label">Pelanggan aktif</span>
+    <strong class="kpi-value"><%= angka(pelangganAktif) %></strong>
+    <span class="kpi-foot">Sambungan terdaftar</span>
+  </div>
+  <div class="card kpi kpi-blue">
+    <span class="kpi-icon">💧</span>
+    <span class="kpi-label">Sumur bor aktif</span>
+    <strong class="kpi-value"><%= angka(sumurAktif) %></strong>
+    <span class="kpi-foot">Unit produksi</span>
+  </div>
+  <div class="card kpi kpi-violet">
+    <span class="kpi-icon">🧾</span>
+    <span class="kpi-label">Tagihan terbit</span>
+    <strong class="kpi-value"><%= rupiah(ringkas.total) %></strong>
+    <span class="kpi-foot"><%= periodeKeuangan ? periodeLabel(periodeKeuangan.tahun, periodeKeuangan.bulan) : 'Belum ada' %> · <%= angka(ringkas.jumlah) %> tagihan</span>
+  </div>
+  <div class="card kpi kpi-red">
+    <span class="kpi-icon">⚠️</span>
+    <span class="kpi-label">Tunggakan</span>
+    <strong class="kpi-value"><%= rupiah(tunggakan.total) %></strong>
+    <span class="kpi-foot"><%= angka(tunggakan.jumlah) %> tagihan belum lunas</span>
+  </div>
+  <div class="card kpi kpi-slate">
+    <span class="kpi-icon">♻️</span>
+    <span class="kpi-label">NRW bulan lalu</span>
+    <strong class="kpi-value"><%= angka(nrw, 1) %>%</strong>
+    <span class="kpi-foot">Produksi <%= angka(produksi, 1) %> m³ · terjual <%= angka(terjual, 1) %> m³</span>
+  </div>
+  <div class="card kpi kpi-amber">
+    <span class="kpi-icon">🔧</span>
+    <span class="kpi-label">Keluhan terbuka</span>
+    <strong class="kpi-value"><%= angka(keluhanTerbuka) %></strong>
+    <span class="kpi-foot">Perlu tindak lanjut</span>
+  </div>
+</div>
+
+<div class="quick-grid">
+  <a class="quick-tile" href="/pelanggan">
+    <span class="quick-ico">👤</span>
+    <span><strong>Pelanggan</strong><span>Data sambungan & meter</span></span>
+  </a>
+  <a class="quick-tile quick-blue" href="/tagihan">
+    <span class="quick-ico">🧾</span>
+    <span><strong>Tagihan</strong><span>Terbitkan & catat bayar</span></span>
+  </a>
+  <a class="quick-tile quick-violet" href="/periode">
+    <span class="quick-ico">🗓</span>
+    <span><strong>Periode &amp; Baca Meter</strong><span>Input angka meter</span></span>
+  </a>
+  <a class="quick-tile quick-amber" href="/laporan">
+    <span class="quick-ico">📊</span>
+    <span><strong>Laporan</strong><span>Rekap &amp; tunggakan</span></span>
+  </a>
+  <% if (adminDesa) { %>
+    <a class="quick-tile" href="/dusun">
+      <span class="quick-ico">🏘</span>
+      <span><strong>Dusun</strong><span>Wilayah layanan</span></span>
+    </a>
+    <a class="quick-tile" href="/profil-desa">
+      <span class="quick-ico">🏛</span>
+      <span><strong>Profil Desa</strong><span>Identitas layanan</span></span>
+    </a>
+  <% } %>
+  <% if (adminDesa || adminDusun) { %>
+    <a class="quick-tile quick-red" href="/pengguna">
+      <span class="quick-ico">👥</span>
+      <span><strong>Pengguna</strong><span>Akun staf &amp; akses</span></span>
+    </a>
+  <% } %>
+</div>
+
+<div class="grid-2">
+  <section class="card">
+    <div class="card-head">
+      <h2>Periode berjalan</h2>
+      <% if (periodeBerjalan) { %>
+        <span class="badge <%= statusKelas(periodeBerjalan.status) %>"><%= statusLabel[periodeBerjalan.status] %></span>
+      <% } %>
+    </div>
+
+    <% if (!periodeBerjalan) { %>
+      <div class="empty">
+        <p>Tidak ada periode terbuka.</p>
+        <% if (semua) { %>
+          <a class="btn btn-primary" href="/periode">Buka periode baru</a>
+        <% } %>
+      </div>
+    <% } else { %>
+      <div class="period-title"><%= periodeLabel(periodeBerjalan.tahun, periodeBerjalan.bulan) %></div>
+      <p class="muted">Jatuh tempo <%= tanggal(periodeBerjalan.tanggal_jatuh_tempo) %></p>
+
+      <div class="progress-label">
+        <span>Pencatatan meter</span>
+        <strong><%= baca.terbaca %> / <%= baca.total %> (<%= progressBaca %>%)</strong>
+      </div>
+      <div class="progress"><span style="width: <%= progressBaca %>%"></span></div>
+      <p class="small muted"><%= baca.final %> pembacaan sudah final dan siap ditagihkan.</p>
+
+      <div class="btn-row">
+        <% if (bisaCatatMeter) { %>
+          <a class="btn btn-primary btn-sm" href="/periode/<%= periodeBerjalan.id %>/baca">Input meter</a>
+        <% } %>
+        <% if (bisaVerifikasi) { %>
+          <a class="btn btn-ghost btn-sm" href="/periode/<%= periodeBerjalan.id %>/verifikasi">Verifikasi</a>
+        <% } %>
+        <% if (semua && baca.final > 0) { %>
+          <form action="/periode/<%= periodeBerjalan.id %>/generate" method="post" data-confirm="Terbitkan tagihan untuk semua pembacaan final?">
+            <button class="btn btn-dark btn-sm" type="submit">Terbitkan tagihan</button>
+          </form>
+        <% } %>
+      </div>
+    <% } %>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Keuangan <%= periodeKeuangan ? periodeLabel(periodeKeuangan.tahun, periodeKeuangan.bulan) : '' %></h2>
+      <% if (periodeKeuangan) { %>
+        <span class="badge badge-info"><%= angka(ringkas.jumlah) %> tagihan</span>
+      <% } %>
+    </div>
+
+    <% if (!periodeKeuangan) { %>
+      <div class="empty"><p>Belum ada tagihan terbit.</p></div>
+    <% } else { %>
+      <% const persenBayar = ringkas.total > 0 ? (ringkas.terbayar / ringkas.total) * 100 : 0; %>
+      <div class="money-row">
+        <div><span class="muted small">Total tagihan</span><strong><%= rupiah(ringkas.total) %></strong></div>
+        <div><span class="muted small">Terbayar</span><strong class="text-success"><%= rupiah(ringkas.terbayar) %></strong></div>
+        <div><span class="muted small">Sisa</span><strong class="text-danger"><%= rupiah(ringkas.total - ringkas.terbayar) %></strong></div>
+      </div>
+      <div class="progress-label">
+        <span>Tingkat pembayaran</span>
+        <strong><%= angka(persenBayar, 1) %>%</strong>
+      </div>
+      <div class="progress progress-green"><span style="width: <%= persenBayar %>%"></span></div>
+      <div class="btn-row">
+        <a class="btn btn-ghost btn-sm" href="/tagihan?periode=<%= periodeKeuangan.id %>">Daftar tagihan</a>
+        <a class="btn btn-ghost btn-sm" href="/laporan?periode=<%= periodeKeuangan.id %>">Rekap</a>
+      </div>
+    <% } %>
+  </section>
+</div>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Rekap per dusun</h2>
+    <span class="muted small"><%= periodeKeuangan ? periodeLabel(periodeKeuangan.tahun, periodeKeuangan.bulan) : '-' %></span>
+  </div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Dusun</th>
+          <th class="num">Tagihan</th>
+          <th class="num">Pemakaian</th>
+          <th class="num">Total</th>
+          <th class="num">Terbayar</th>
+          <th class="num">Sisa</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% rekapDusun.forEach((r) => { %>
+          <tr>
+            <td><strong><%= r.nama %></strong></td>
+            <td class="num"><%= angka(r.jumlah) %></td>
+            <td class="num"><%= angka(r.m3, 1) %> m³</td>
+            <td class="num"><%= rupiah(r.total) %></td>
+            <td class="num text-success"><%= rupiah(r.terbayar) %></td>
+            <td class="num text-danger"><%= rupiah(r.total - r.terbayar) %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="grid-2">
+  <section class="card">
+    <div class="card-head">
+      <h2>Pembayaran terbaru</h2>
+      <a class="link" href="/tagihan">Semua tagihan</a>
+    </div>
+    <% if (!pembayaranTerbaru.length) { %>
+      <div class="empty"><p>Belum ada pembayaran.</p></div>
+    <% } else { %>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Kwitansi</th><th>Pelanggan</th><th>Tanggal</th><th class="num">Jumlah</th></tr></thead>
+          <tbody>
+            <% pembayaranTerbaru.forEach((b) => { %>
+              <tr>
+                <td><a class="link" href="/kwitansi/<%= b.id %>"><%= b.nomor_kwitansi %></a></td>
+                <td><%= b.nama %></td>
+                <td><%= tanggal(b.tanggal_bayar) %></td>
+                <td class="num"><%= rupiah(b.jumlah) %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Tunggakan terbesar</h2>
+      <a class="link" href="/tagihan?status=tunggakan">Lihat semua</a>
+    </div>
+    <% if (!tunggakanTeratas.length) { %>
+      <div class="empty"><p>Tidak ada tunggakan.</p></div>
+    <% } else { %>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Pelanggan</th><th>Jatuh tempo</th><th class="num">Sisa</th></tr></thead>
+          <tbody>
+            <% tunggakanTeratas.forEach((t) => { %>
+              <tr>
+                <td>
+                  <a class="link" href="/tagihan/<%= t.id %>"><%= t.nama %></a>
+                  <div class="small muted"><%= t.dusun %></div>
+                </td>
+                <td><%= tanggal(t.jatuh_tempo) %></td>
+                <td class="num text-danger"><%= rupiah(t.sisa) %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </section>
+</div>

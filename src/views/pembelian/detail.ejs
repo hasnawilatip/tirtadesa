@@ -1,0 +1,117 @@
+<div class="page-head">
+  <div>
+    <h1>Pembelian <%= row.nomor %></h1>
+    <p class="muted">
+      <span class="badge <%= statusKelas(row.status) %>"><%= statusLabel[row.status] || row.status %></span>
+      · <%= tanggal(row.tanggal) %> · <%= metodeLabel[row.metode] || row.metode %>
+      · <%= row.supplier || 'Supplier tidak dicatat' %>
+    </p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-ghost" href="/pembelian">Daftar pembelian</a>
+    <% if (bolehKelola && row.status === 'draf') { %>
+      <a class="btn btn-ghost" href="/pembelian/<%= row.id %>/edit">Ubah nota</a>
+    <% } %>
+  </div>
+</div>
+
+<% if (row.status === 'draf') { %>
+  <div class="alert alert-warning">
+    <span>Nota ini masih <strong>draf</strong> — stok gudang belum bertambah dan pengeluaran belum tercatat di laporan.</span>
+  </div>
+<% } %>
+
+<div class="grid-2">
+  <section class="card">
+    <div class="card-head"><h2>Ringkasan nota</h2></div>
+    <div class="reading-meta">
+      <div class="meta-box"><span>Nomor</span><strong><%= row.nomor %></strong></div>
+      <div class="meta-box"><span>Tanggal</span><strong><%= tanggal(row.tanggal) %></strong></div>
+      <div class="meta-box"><span>Supplier</span><strong><%= row.supplier || '-' %></strong></div>
+      <div class="meta-box"><span>Metode</span><strong><%= metodeLabel[row.metode] || row.metode %></strong></div>
+      <div class="meta-box"><span>Dicatat oleh</span><strong><%= row.dibuat_nama || '-' %></strong></div>
+      <div class="meta-box"><span>Diterima oleh</span><strong><%= row.diterima_nama || 'Belum diterima' %></strong></div>
+      <div class="meta-box span-2"><span>Catatan</span><strong><%= row.catatan || '-' %></strong></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Rincian bahan</h2><span class="muted small"><%= items.length %> jenis</span></div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr><th>Bahan</th><th class="num">Jumlah</th><th class="num">Harga</th><th class="num">Subtotal</th></tr>
+        </thead>
+        <tbody>
+          <% if (!items.length) { %><tr><td colspan="4" class="empty-cell">Belum ada bahan.</td></tr><% } %>
+          <% items.forEach((b) => { %>
+            <tr>
+              <td><%= b.nama_bahan %><div class="small muted"><%= b.satuan %></div></td>
+              <td class="num"><%= angka(b.jumlah) %></td>
+              <td class="num small"><%= rupiah(b.harga_satuan) %></td>
+              <td class="num"><%= rupiah(b.subtotal) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3" class="num"><strong>Total pembelian</strong></td>
+            <td class="num"><strong><%= rupiah(row.total) %></strong></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </section>
+</div>
+
+<% if (mutasi.length) { %>
+  <section class="card">
+    <div class="card-head"><h2>Stok masuk dari nota ini</h2></div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Bahan</th><th class="num">Jumlah masuk</th><th class="num">Stok akhir</th><th>Waktu</th></tr></thead>
+        <tbody>
+          <% mutasi.forEach((m) => { %>
+            <tr>
+              <td><%= m.bahan_nama %></td>
+              <td class="num"><%= angka(m.jumlah) %> <%= m.satuan %></td>
+              <td class="num"><%= angka(m.stok_akhir) %></td>
+              <td class="small"><%= m.created_at %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+<% } %>
+
+<% if (bolehKelola) { %>
+  <section class="card">
+    <div class="card-head"><h2>Tindakan</h2></div>
+    <div class="modal-body">
+      <% if (row.status === 'draf') { %>
+        <form action="/pembelian/<%= row.id %>/terima" method="post" class="form-stack">
+          <p class="small muted">
+            Menandai barang diterima akan <strong>menambah stok</strong> tiap bahan di atas,
+            mencatat mutasi gudang, dan memperbarui harga satuan bahan ke harga pembelian ini.
+          </p>
+          <button class="btn btn-primary" type="submit">Terima barang &amp; tambah stok</button>
+        </form>
+        <form action="/pembelian/<%= row.id %>/batal" method="post" class="form-stack">
+          <button class="btn btn-ghost" type="submit">Batalkan nota</button>
+        </form>
+        <form action="/pembelian/<%= row.id %>/hapus" method="post" onsubmit="return confirm('Hapus nota ini?')">
+          <button class="btn btn-ghost text-danger" type="submit">Hapus nota</button>
+        </form>
+      <% } else if (row.status === 'dibatalkan') { %>
+        <form action="/pembelian/<%= row.id %>/hapus" method="post" onsubmit="return confirm('Hapus nota ini?')">
+          <button class="btn btn-ghost text-danger" type="submit">Hapus nota</button>
+        </form>
+      <% } else { %>
+        <p class="muted small">
+          Barang sudah diterima pada <%= row.diterima_at || '-' %>. Stok gudang dan pengeluaran sudah tercatat.
+        </p>
+      <% } %>
+    </div>
+  </section>
+<% } %>

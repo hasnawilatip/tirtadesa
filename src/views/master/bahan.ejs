@@ -1,0 +1,254 @@
+<% if (bolehKelola) { %>
+  <dialog class="modal" id="modalBahan">
+    <div class="modal-head">
+      <div>
+        <h2>Tambah bahan</h2>
+        <span class="muted">Daftarkan material baru di gudang.</span>
+      </div>
+      <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+    </div>
+    <div class="modal-body">
+      <form action="/bahan" method="post">
+        <div class="form-grid">
+          <div class="field">
+            <label>Kode bahan</label>
+            <input class="input" name="kode" value="<%= kodeOtomatis %>" readonly>
+            <span class="small muted">Dibuat otomatis oleh sistem.</span>
+          </div>
+          <div class="field">
+            <label>Nama bahan</label>
+            <input class="input" name="nama" required placeholder="Mis. Pipa HDPE 3/4 inci">
+          </div>
+          <div class="field">
+            <label>Kategori</label>
+            <select name="kategori">
+              <% Object.entries(kategoriLabel).forEach(([nilai, teks]) => { %>
+                <option value="<%= nilai %>"><%= teks %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="field">
+            <label>Satuan</label>
+            <select name="satuan">
+              <% satuanList.forEach((s) => { %><option value="<%= s %>"><%= s %></option><% }) %>
+            </select>
+          </div>
+          <div class="field">
+            <label>Stok awal</label>
+            <input class="input" type="number" step="0.01" min="0" name="stok" value="0">
+          </div>
+          <div class="field">
+            <label>Stok minimum</label>
+            <input class="input" type="number" step="0.01" min="0" name="stok_minimum" value="0">
+            <span class="small muted">Peringatan bila stok di bawah angka ini.</span>
+          </div>
+          <div class="field">
+            <label>Harga satuan (Rp)</label>
+            <input class="input" type="number" step="100" min="0" name="harga_satuan" value="0">
+          </div>
+          <div class="field">
+            <label>Lokasi simpan</label>
+            <input class="input" name="lokasi" placeholder="Mis. Rak A / gudang kantor">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Simpan bahan</button>
+          <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+<% } %>
+
+<div class="page-head">
+  <div>
+    <h1>Gudang Bahan</h1>
+    <p class="muted">Stok material siap pakai untuk pemasangan sambungan baru dan perbaikan.</p>
+  </div>
+  <% if (bolehKelola) { %>
+    <div class="page-actions">
+      <button class="btn btn-primary" type="button" data-modal-open="modalBahan">+ Tambah bahan</button>
+      <a class="btn btn-ghost" href="/pembelian?buka=modalPembelian&dari=menipis">Buat pembelian</a>
+      <a class="btn btn-ghost" href="/pasang?buka=modalPasang">Pendaftaran pasang</a>
+    </div>
+  <% } %>
+</div>
+
+<div class="kpi-grid">
+  <div class="card kpi kpi-teal">
+    <span class="kpi-icon">📦</span>
+    <span class="kpi-label">Jenis bahan</span>
+    <strong class="kpi-value"><%= angka(ringkas.item) %></strong>
+    <span class="kpi-foot">Terdaftar di gudang</span>
+  </div>
+  <div class="card kpi kpi-blue">
+    <span class="kpi-icon">💰</span>
+    <span class="kpi-label">Nilai stok</span>
+    <strong class="kpi-value"><%= rupiah(ringkas.nilai) %></strong>
+    <span class="kpi-foot">Stok × harga satuan</span>
+  </div>
+  <div class="card kpi kpi-amber">
+    <span class="kpi-icon">⚠️</span>
+    <span class="kpi-label">Stok menipis</span>
+    <strong class="kpi-value"><%= angka(ringkas.menipis) %></strong>
+    <span class="kpi-foot">Perlu dibeli lagi</span>
+  </div>
+  <div class="card kpi kpi-red">
+    <span class="kpi-icon">⛔</span>
+    <span class="kpi-label">Stok habis</span>
+    <strong class="kpi-value"><%= angka(ringkas.habis) %></strong>
+    <span class="kpi-foot">
+      <% if (bolehKelola && (ringkas.habis || ringkas.menipis)) { %>
+        <a class="link" href="/pembelian?buka=modalPembelian&dari=menipis">Buat pembelian bahan</a>
+      <% } else { %>
+        Tidak ada bahan kosong
+      <% } %>
+    </span>
+  </div>
+</div>
+
+<section class="card">
+  <form action="/bahan" method="get" class="filters">
+    <div class="field filter-cari">
+      <label>Cari bahan</label>
+      <input class="input" name="q" value="<%= filters.q %>" placeholder="Nama atau kode bahan">
+    </div>
+    <div class="field">
+      <label>Kategori</label>
+      <select name="kategori">
+        <option value="">Semua kategori</option>
+        <% Object.entries(kategoriLabel).forEach(([nilai, teks]) => { %>
+          <option value="<%= nilai %>" <%= filters.kategori === nilai ? 'selected' : '' %>><%= teks %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="field">
+      <label>Kondisi stok</label>
+      <select name="kondisi">
+        <option value="">Semua kondisi</option>
+        <option value="aman" <%= filters.kondisi === 'aman' ? 'selected' : '' %>>Aman</option>
+        <option value="menipis" <%= filters.kondisi === 'menipis' ? 'selected' : '' %>>Menipis</option>
+        <option value="habis" <%= filters.kondisi === 'habis' ? 'selected' : '' %>>Habis</option>
+      </select>
+    </div>
+    <div class="field"><button class="btn btn-primary" type="submit">Filter</button></div>
+  </form>
+
+  <div class="table-wrap" data-hasil="daftar">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Kode</th>
+          <th>Nama bahan</th>
+          <th class="col-dusun">Kategori</th>
+          <th class="num">Stok</th>
+          <th class="num col-sumur">Minimum</th>
+          <th class="num col-meter">Harga satuan</th>
+          <th>Kondisi</th>
+          <th class="col-aksi"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!rows.length) { %>
+          <tr><td colspan="8" class="empty-cell">Belum ada bahan pada filter ini.</td></tr>
+        <% } %>
+        <% rows.forEach((b) => { %>
+          <tr>
+            <td class="small"><strong><%= b.kode %></strong></td>
+            <td>
+              <%= b.nama %>
+              <div class="small muted"><%= b.lokasi || 'Gudang' %><%= b.is_active ? '' : ' · nonaktif' %></div>
+            </td>
+            <td class="col-dusun small"><%= kategoriLabel[b.kategori] || b.kategori %></td>
+            <td class="num"><strong><%= angka(b.stok) %></strong> <span class="small muted"><%= b.satuan %></span></td>
+            <td class="num col-sumur small"><%= angka(b.stok_minimum) %></td>
+            <td class="num col-meter small"><%= rupiah(b.harga_satuan) %></td>
+            <td><span class="badge <%= statusKelas(b.kondisi) %>"><%= statusLabel[b.kondisi] %></span></td>
+            <td class="num col-aksi nowrap">
+              <a class="link" href="/bahan/<%= b.id %>">Riwayat</a>
+              <% if (bolehKelola) { %>
+                <button class="link" type="button" data-modal-open="modalStok<%= b.id %>">Stok masuk</button>
+                <a class="link" href="/pembelian?buka=modalPembelian&bahan=<%= b.id %>">Beli</a>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<% if (bolehKelola) { %>
+  <% rows.forEach((b) => { %>
+    <dialog class="modal modal-sm" id="modalStok<%= b.id %>">
+      <div class="modal-head">
+        <div>
+          <h2>Penerimaan / koreksi stok</h2>
+          <span class="muted"><%= b.nama %> · stok <%= angka(b.stok) %> <%= b.satuan %></span>
+        </div>
+        <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+      </div>
+      <div class="modal-body">
+        <form action="/bahan/<%= b.id %>/stok" method="post">
+          <div class="form-grid">
+            <div class="field">
+              <label>Jenis</label>
+              <select name="jenis">
+                <option value="masuk">Barang masuk (penerimaan)</option>
+                <option value="koreksi">Koreksi stok fisik (opname)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Jumlah (<%= b.satuan %>)</label>
+              <input class="input" type="number" step="0.01" min="0" name="jumlah" required>
+              <span class="small muted">Pada koreksi, isi stok hasil hitung fisik.</span>
+            </div>
+            <div class="field span-2">
+              <label>Keterangan</label>
+              <input class="input" name="keterangan" placeholder="Mis. pembelian dari toko bangunan">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" type="submit">Simpan</button>
+            <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+          </div>
+        </form>
+        <hr style="border:none;border-top:1px dashed var(--line);margin:16px 0 12px;">
+        <form action="/bahan/<%= b.id %>" method="post">
+          <div class="form-grid">
+            <div class="field span-2"><label>Nama bahan</label><input class="input" name="nama" value="<%= b.nama %>" required></div>
+            <div class="field">
+              <label>Kategori</label>
+              <select name="kategori">
+                <% Object.entries(kategoriLabel).forEach(([nilai, teks]) => { %>
+                  <option value="<%= nilai %>" <%= b.kategori === nilai ? 'selected' : '' %>><%= teks %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="field">
+              <label>Satuan</label>
+              <select name="satuan">
+                <% satuanList.forEach((s) => { %>
+                  <option value="<%= s %>" <%= b.satuan === s ? 'selected' : '' %>><%= s %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="field"><label>Stok minimum</label><input class="input" type="number" step="0.01" min="0" name="stok_minimum" value="<%= b.stok_minimum %>"></div>
+            <div class="field"><label>Harga satuan (Rp)</label><input class="input" type="number" step="100" min="0" name="harga_satuan" value="<%= b.harga_satuan %>"></div>
+            <div class="field"><label>Lokasi simpan</label><input class="input" name="lokasi" value="<%= b.lokasi || '' %>"></div>
+            <div class="field">
+              <label>Status</label>
+              <select name="is_active">
+                <option value="1" <%= b.is_active ? 'selected' : '' %>>Aktif dipakai</option>
+                <option value="0" <%= b.is_active ? '' : 'selected' %>>Nonaktif</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-ghost" type="submit">Simpan perubahan bahan</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+  <% }) %>
+<% } %>

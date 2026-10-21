@@ -1,0 +1,209 @@
+<% const jamSekarang = new Date().getHours(); %>
+<% const sapaan = jamSekarang < 11 ? 'Selamat pagi' : (jamSekarang < 15 ? 'Selamat siang' : (jamSekarang < 18 ? 'Selamat sore' : 'Selamat malam')); %>
+
+<section class="dash-hero">
+  <div>
+    <h1><%= sapaan %>, Superadmin 👋</h1>
+    <p>Kelola pendaftaran pengelola sumur bor dan akun admin. Data operasional dikelola masing-masing pengelola.</p>
+    <div class="hero-chips">
+      <div class="hero-chip"><strong><%= angka(stat.pendaftaran) %></strong><span>Pendaftaran baru</span></div>
+      <div class="hero-chip"><strong><%= angka(stat.reset) %></strong><span>Reset password</span></div>
+      <div class="hero-chip"><strong><%= rupiah(komersial.pendapatan) %></strong><span>Pendapatan berjalan</span></div>
+      <div class="hero-chip"><strong><%= angka(komersial.pengelola) %></strong><span>Pengelola</span></div>
+    </div>
+  </div>
+  <div class="hero-actions">
+    <a class="btn btn-primary" href="/superadmin/pendaftaran">Tinjau pendaftaran</a>
+    <a class="btn btn-ghost" href="/superadmin/langganan">Langganan pengelola</a>
+  </div>
+</section>
+
+<div class="kpi-grid">
+  <div class="card kpi kpi-amber">
+    <span class="kpi-icon">✉️</span>
+    <span class="kpi-label">Pendaftaran baru</span>
+    <strong class="kpi-value"><%= angka(stat.pendaftaran) %></strong>
+    <span class="kpi-foot">Calon pengelola sumur bor</span>
+  </div>
+  <div class="card kpi kpi-red">
+    <span class="kpi-icon">🔑</span>
+    <span class="kpi-label">Reset password</span>
+    <strong class="kpi-value"><%= angka(stat.reset) %></strong>
+    <span class="kpi-foot">Permintaan baru</span>
+  </div>
+  <div class="card kpi kpi-teal">
+    <span class="kpi-icon">👥</span>
+    <span class="kpi-label">Total akun</span>
+    <strong class="kpi-value"><%= angka(stat.pengguna) %></strong>
+    <span class="kpi-foot"><%= angka(stat.penggunaAktif) %> akun aktif</span>
+  </div>
+  <div class="card kpi kpi-blue">
+    <span class="kpi-icon">🏘</span>
+    <span class="kpi-label">Dusun aktif</span>
+    <strong class="kpi-value"><%= angka(stat.dusun) %></strong>
+    <span class="kpi-foot">Wilayah layanan</span>
+  </div>
+  <div class="card kpi kpi-violet">
+    <span class="kpi-icon">💧</span>
+    <span class="kpi-label">Sumur bor</span>
+    <strong class="kpi-value"><%= angka(stat.sumur) %></strong>
+    <span class="kpi-foot">Unit produksi</span>
+  </div>
+  <div class="card kpi kpi-slate">
+    <span class="kpi-icon">🔗</span>
+    <span class="kpi-label">Pelanggan aktif</span>
+    <strong class="kpi-value"><%= angka(stat.pelanggan) %></strong>
+    <span class="kpi-foot">Sambungan terdaftar</span>
+  </div>
+</div>
+
+<div class="quick-grid">
+  <a class="quick-tile quick-amber" href="/superadmin/pendaftaran">
+    <span class="quick-ico">✉️</span>
+    <span><strong>Pendaftaran pengelola</strong><span><%= angka(stat.pendaftaran) %> pendaftar menunggu</span></span>
+  </a>
+  <a class="quick-tile quick-teal" href="/superadmin/paket">
+    <span class="quick-ico">▦</span>
+    <span><strong>Paket langganan</strong><span><%= angka(komersial.paket) %> paket aktif</span></span>
+  </a>
+  <a class="quick-tile quick-violet" href="/superadmin/langganan">
+    <span class="quick-ico">▥</span>
+    <span><strong>Langganan pengelola</strong><span><%= angka(komersial.perluPerhatian) %> perlu perhatian</span></span>
+  </a>
+  <a class="quick-tile" href="/pengguna">
+    <span class="quick-ico">👤</span>
+    <span><strong>Buat akun admin</strong><span>Admin desa &amp; admin dusun</span></span>
+  </a>
+  <a class="quick-tile quick-teal" href="/superadmin/paket">
+    <span class="quick-ico">▦</span>
+    <span><strong>Paket langganan</strong><span><%= angka(komersial.paket) %> paket aktif</span></span>
+  </a>
+  <a class="quick-tile quick-blue" href="/superadmin/pembayaran">
+    <span class="quick-ico">💳</span>
+    <span><strong>Pembayaran online</strong><span>Saluran bayar warga</span></span>
+  </a>
+  <a class="quick-tile quick-red" href="/superadmin/reset-password">
+    <span class="quick-ico">🔑</span>
+    <span><strong>Reset password</strong><span><%= angka(stat.reset) %> permintaan baru</span></span>
+  </a>
+  <a class="quick-tile quick-blue" href="/pengaturan">
+    <span class="quick-ico">⚙️</span>
+    <span><strong>Pengaturan</strong><span>Nama, tagline &amp; logo</span></span>
+  </a>
+  <a class="quick-tile quick-violet" href="/audit">
+    <span class="quick-ico">🕘</span>
+    <span><strong>Audit log</strong><span>Riwayat aktivitas</span></span>
+  </a>
+</div>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Akun per peran</h2>
+    <span class="muted small"><%= angka(stat.pengguna) %> akun</span>
+  </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Peran</th><th class="num">Jumlah</th></tr></thead>
+        <tbody>
+          <% perRole.forEach((r) => { %>
+            <tr>
+              <td><span class="badge badge-info"><%= roleLabel[r.role] || r.role %></span></td>
+              <td class="num"><%= angka(r.n) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <div class="btn-row">
+      <a class="btn btn-primary btn-sm" href="/pengguna">Kelola pengguna</a>
+      <a class="btn btn-ghost btn-sm" href="/superadmin/pendaftaran">Pendaftaran</a>
+      <a class="btn btn-ghost btn-sm" href="/superadmin/reset-password">Reset password</a>
+      <a class="btn btn-ghost btn-sm" href="/pengaturan">Pengaturan</a>
+      <a class="btn btn-ghost btn-sm" href="/audit">Audit log</a>
+    </div>
+  </section>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Pendaftaran pengelola sumur bor</h2>
+    <a class="link small" href="/superadmin/pendaftaran">Lihat semua</a>
+  </div>
+  <% if (!pendaftaranTerbaru.length) { %>
+    <div class="empty"><p>Belum ada pendaftaran masuk.</p></div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Pengelola</th><th>Jenis</th><th>Usaha</th><th>Lokasi</th><th>WhatsApp</th><th>Status</th><th>Waktu</th></tr></thead>
+        <tbody>
+          <% pendaftaranTerbaru.forEach((p) => { %>
+            <tr>
+              <td><strong><%= p.nama %></strong></td>
+              <td><span class="badge badge-info"><%= jenisLabel[p.jenis] || p.jenis %></span></td>
+              <td><%= p.usaha %></td>
+              <td class="small"><%= p.lokasi %></td>
+              <td class="small">
+                <% if (p.wa) { %><a href="<%= p.wa %>" target="_blank" rel="noopener"><%= p.whatsapp %></a><% } else { %><%= p.whatsapp %><% } %>
+              </td>
+              <td>
+                <span class="badge <%= p.status === 'baru' ? 'badge-warning' : (p.status === 'diterima' ? 'badge-success' : (p.status === 'ditolak' ? 'badge-danger' : 'badge-info')) %>"><%= statusLabel[p.status] %></span>
+              </td>
+              <td class="small"><%= p.created_at %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Permintaan reset password</h2>
+    <a class="link small" href="/superadmin/reset-password">Lihat semua</a>
+  </div>
+  <% if (!permintaanReset.length) { %>
+    <div class="empty"><p>Belum ada permintaan reset password.</p></div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Waktu</th><th>Username</th><th>Kontak</th><th>Status</th></tr></thead>
+        <tbody>
+          <% permintaanReset.forEach((p) => { %>
+            <tr>
+              <td class="small nowrap"><%= p.created_at %></td>
+              <td><strong><%= p.username %></strong><% if (p.nama) { %><div class="small muted"><%= p.nama %></div><% } %></td>
+              <td class="small">
+                <% if (p.wa) { %><a href="<%= p.wa %>" target="_blank" rel="noopener"><%= p.whatsapp %></a><% } else { %><%= p.whatsapp %><% } %>
+              </td>
+              <td><span class="badge <%= p.status === 'baru' ? 'badge-warning' : (p.status === 'selesai' ? 'badge-success' : 'badge-info') %>"><%= statusReset[p.status] %></span></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Akun terbaru</h2>
+    <a class="link small" href="/pengguna">Lihat semua</a>
+  </div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Nama</th><th>Username</th><th>Peran</th><th>Dusun</th><th>Status</th><th>Dibuat</th></tr></thead>
+      <tbody>
+        <% penggunaTerbaru.forEach((u) => { %>
+          <tr>
+            <td><strong><%= u.nama %></strong></td>
+            <td class="small"><%= u.username %></td>
+            <td><span class="badge badge-info"><%= roleLabel[u.role] || u.role %></span></td>
+            <td><%= u.dusun || 'Tingkat desa' %></td>
+            <td><span class="badge <%= u.is_active ? 'badge-success' : 'badge-muted' %>"><%= u.is_active ? 'Aktif' : 'Nonaktif' %></span></td>
+            <td class="small"><%= u.created_at %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>

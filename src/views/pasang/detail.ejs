@@ -1,0 +1,182 @@
+<div class="page-head">
+  <div>
+    <h1>Pendaftaran <%= row.nomor %></h1>
+    <p class="muted">
+      <span class="badge <%= statusKelas(row.status) %>"><%= statusLabel[row.status] || row.status %></span>
+      · Survei <%= tanggal(row.tanggal_survei) %>
+      · Diajukan <%= row.diajukan_nama ? `oleh ${row.diajukan_nama}` : 'oleh —' %>
+      <% if (row.disetujui_nama && row.status === 'disetujui') { %>
+        · Disetujui oleh <%= row.disetujui_nama %>
+      <% } %>
+    </p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-ghost" href="/pasang">Daftar pendaftaran</a>
+    <% if (bolehUbah) { %><a class="btn btn-ghost" href="/pasang/<%= row.id %>/edit">Ubah data</a><% } %>
+  </div>
+</div>
+
+<% if (row.alasan_tolak && row.status === 'ditolak') { %>
+  <div class="alert alert-danger">
+    <strong>Ditolak admin:</strong> <%= row.alasan_tolak %>. Silakan perbaiki data lalu ajukan ulang.
+  </div>
+<% } %>
+<% if (row.catatan_admin && row.status === 'dibatalkan') { %>
+  <div class="alert alert-warning"><strong>Catatan admin:</strong> <%= row.catatan_admin %></div>
+<% } %>
+
+<div class="grid-2">
+  <section class="card">
+    <div class="card-head"><h2>Data calon pelanggan</h2></div>
+    <div class="reading-meta">
+      <div class="meta-box"><span>Nama</span><strong><%= row.nama %></strong></div>
+      <div class="meta-box"><span>Telepon</span><strong><%= row.telepon || '-' %></strong></div>
+      <div class="meta-box"><span>Dusun</span><strong><%= row.dusun_nama %></strong></div>
+      <div class="meta-box"><span>Sumur sumber</span><strong><%= row.sumur_kode ? `${row.sumur_kode} · ${row.sumur_nama}` : '-' %></strong></div>
+      <div class="meta-box"><span>Golongan tarif</span><strong><%= row.golongan_nama || '-' %></strong></div>
+      <div class="meta-box"><span>Jumlah penghuni</span><strong><%= row.jumlah_penghuni || '-' %></strong></div>
+      <div class="meta-box span-2"><span>Alamat</span><strong><%= [row.alamat, row.rt ? `RT ${row.rt}` : '', row.rw ? `RW ${row.rw}` : ''].filter(Boolean).join(' · ') || '-' %></strong></div>
+      <div class="meta-box"><span>Panjang pipa</span><strong><%= row.panjang_pipa ? `${angka(row.panjang_pipa)} m · ${row.ukuran_pipa || '-'} inci` : '-' %></strong></div>
+      <div class="meta-box"><span>Kedalaman tapping</span><strong><%= row.kedalaman_tapping != null ? `${angka(row.kedalaman_tapping, 1)} m` : '-' %></strong></div>
+    </div>
+    <% if (row.catatan) { %>
+      <p class="small muted" style="padding:0 16px 14px;">Catatan petugas: <%= row.catatan %></p>
+    <% } %>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Rincian bahan</h2><span class="muted small"><%= rincian.length %> jenis</span></div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr><th>Bahan</th><th class="num">Jumlah</th><th class="num">Harga</th><th class="num">Subtotal</th></tr>
+        </thead>
+        <tbody>
+          <% if (!rincian.length) { %><tr><td colspan="4" class="empty-cell">Belum ada bahan dihitung.</td></tr><% } %>
+          <% rincian.forEach((b) => { %>
+            <tr>
+              <td><%= b.nama_bahan %><div class="small muted"><%= b.satuan %></div></td>
+              <td class="num"><%= angka(b.jumlah) %></td>
+              <td class="num small"><%= rupiah(b.harga_satuan) %></td>
+              <td class="num"><%= rupiah(b.subtotal) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+        <tfoot>
+          <tr><td colspan="3" class="num">Total bahan</td><td class="num"><%= rupiah(row.total_bahan) %></td></tr>
+          <tr><td colspan="3" class="num">Biaya jasa</td><td class="num"><%= rupiah(row.biaya_jasa) %></td></tr>
+          <tr><td colspan="3" class="num"><strong>Total perkiraan</strong></td><td class="num"><strong><%= rupiah(row.total_biaya) %></strong></td></tr>
+        </tfoot>
+      </table>
+    </div>
+  </section>
+</div>
+
+<% if (riwayat.length || row.status === 'disetujui') { %>
+  <section class="card">
+    <div class="card-head"><h2>Bahan disiapkan dari gudang</h2></div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Bahan</th><th class="num">Jumlah keluar</th><th>Dicatat oleh</th><th>Waktu</th></tr></thead>
+        <tbody>
+          <% if (!riwayat.length) { %><tr><td colspan="4" class="empty-cell">Belum ada mutasi gudang.</td></tr><% } %>
+          <% riwayat.forEach((m) => { %>
+            <tr>
+              <td><%= m.bahan_nama %></td>
+              <td class="num"><%= angka(m.jumlah) %> <%= m.satuan %></td>
+              <td class="small"><%= m.pengguna || '-' %></td>
+              <td class="small"><%= m.created_at %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+<% } %>
+
+<% if (pelanggan) { %>
+  <section class="card">
+    <div class="card-head"><h2>Pelanggan terpasang</h2></div>
+    <div class="reading-meta">
+      <div class="meta-box"><span>Nomor pelanggan</span><strong><%= pelanggan.nomor_pelanggan %></strong></div>
+      <div class="meta-box"><span>Nama</span><strong><%= pelanggan.nama %></strong></div>
+    </div>
+    <div class="form-actions" style="padding:0 16px 16px;">
+      <a class="btn btn-primary" href="/pelanggan/<%= pelanggan.id %>">Buka data pelanggan</a>
+    </div>
+  </section>
+<% } %>
+
+<section class="card">
+  <div class="card-head"><h2>Tindakan</h2></div>
+  <div class="modal-body">
+    <% if (bolehSetujui) { %>
+      <form action="/pasang/<%= row.id %>/setujui" method="post" class="form-stack">
+        <div class="field">
+          <label>Catatan admin (opsional)</label>
+          <input class="input" name="catatan_admin" placeholder="Mis. bahan diambil petugas hari ini">
+        </div>
+        <button class="btn btn-primary" type="submit">Setujui &amp; siapkan bahan</button>
+      </form>
+    <% } %>
+    <% if (bolehPasang) { %>
+      <form action="/pasang/<%= row.id %>/terpasang" method="post" class="form-stack">
+        <div class="form-grid">
+          <div class="field">
+            <label>Golongan tarif</label>
+            <select name="golongan_id" required>
+              <option value="">— Pilih golongan —</option>
+              <% golonganList.forEach((g) => { %>
+                <option value="<%= g.id %>" <%= row.golongan_id === g.id ? 'selected' : '' %>><%= g.kode %> · <%= g.nama %></option>
+              <% }) %>
+            </select>
+            <% if (!row.golongan_id) { %>
+              <span class="small muted">Belum ditentukan saat pendaftaran — wajib dipilih agar tagihan bisa terbit.</span>
+            <% } %>
+          </div>
+          <div class="field">
+            <label>Sumur sumber air</label>
+            <select name="sumur_id">
+              <option value="">— Belum ditentukan —</option>
+              <% sumurList.forEach((s) => { %>
+                <option value="<%= s.id %>" <%= row.sumur_id === s.id ? 'selected' : '' %>><%= s.kode %> · <%= s.nama %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="field"><label>Tanggal pasang</label><input class="input" type="date" name="tanggal_pasang" value="<%= today %>" required></div>
+          <div class="field"><label>Nomor seri meter</label><input class="input" name="nomor_seri" placeholder="Nomor seri pabrik"></div>
+          <div class="field"><label>Merk meter</label><input class="input" name="merk" placeholder="Itron / Zenner"></div>
+          <div class="field"><label>Tipe meter</label><input class="input" name="tipe" placeholder="Multi-jet 1/2 inci"></div>
+        </div>
+        <p class="small muted">Nomor pelanggan &amp; nomor meter dibuat otomatis saat pemasangan ditandai selesai.</p>
+        <button class="btn btn-primary" type="submit">Tandai selesai terpasang</button>
+      </form>
+    <% } %>
+    <% if (bolehTolak) { %>
+      <form action="/pasang/<%= row.id %>/tolak" method="post" class="form-stack">
+        <div class="field">
+          <label>Alasan penolakan</label>
+          <input class="input" name="alasan_tolak" placeholder="Mis. lokasi di luar jaringan">
+        </div>
+        <button class="btn btn-ghost" type="submit">Tolak pendaftaran</button>
+      </form>
+    <% } %>
+    <% if (bolehBatal) { %>
+      <form action="/pasang/<%= row.id %>/batal" method="post" class="form-stack">
+        <div class="field">
+          <label>Alasan pembatalan</label>
+          <input class="input" name="alasan_batal" placeholder="Mis. calon pelanggan membatalkan">
+        </div>
+        <button class="btn btn-ghost" type="submit">Batalkan &amp; kembalikan bahan</button>
+      </form>
+    <% } %>
+    <% if (bolehHapus) { %>
+      <form action="/pasang/<%= row.id %>/hapus" method="post" onsubmit="return confirm('Hapus pendaftaran ini?')">
+        <button class="btn btn-ghost text-danger" type="submit">Hapus pendaftaran</button>
+      </form>
+    <% } %>
+    <% if (!bolehSetujui && !bolehPasang && !bolehTolak && !bolehBatal && !bolehHapus) { %>
+      <p class="muted small">Tidak ada tindakan yang tersedia untuk status ini.</p>
+    <% } %>
+  </div>
+</section>

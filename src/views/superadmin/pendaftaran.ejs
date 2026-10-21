@@ -1,0 +1,204 @@
+<% const badgeKelas = (s) => s === 'baru' ? 'badge-warning' : (s === 'diterima' ? 'badge-success' : (s === 'ditolak' ? 'badge-danger' : 'badge-info')); %>
+<div class="page-head">
+  <div>
+    <h1>Pendaftaran Pengelola</h1>
+    <p class="muted">Calon pengelola sumur bor yang mendaftar lewat halaman publik.</p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-ghost" href="/superadmin">← Panel superadmin</a>
+  </div>
+</div>
+
+<section class="card" style="margin-bottom:16px;">
+  <div class="card-head"><h2>Alur setelah pendaftaran masuk</h2></div>
+  <ol class="muted small" style="margin:0 0 0 18px;padding:0;line-height:1.8;">
+    <li>Hubungi pendaftar lewat WhatsApp untuk memastikan data (tombol nomor kontak ada di tabel).</li>
+    <li>Klik <strong>Buat akun</strong> — nama, username, dan kata sandi sudah terisi otomatis dari data pendaftaran.</li>
+    <li>Akun langsung aktif dan pendaftaran otomatis berstatus <strong>Diterima</strong>.</li>
+    <li>Kirim username &amp; kata sandi sementara ke pendaftar; ia dapat menggantinya setelah masuk.</li>
+    <li>Setiap akun mendapat <strong>ruang kerja sendiri</strong> (data kosong, terpisah dari pengelola lain) berisi satu dusun &amp; tarif awal.</li>
+  </ol>
+</section>
+
+<div class="tabs">
+  <a class="tab <%= !filter ? 'active' : '' %>" href="/superadmin/pendaftaran">Semua (<%= total %>)</a>
+  <% statusOptions.forEach((s) => { %>
+    <a class="tab <%= filter === s ? 'active' : '' %>" href="/superadmin/pendaftaran?status=<%= s %>"><%= statusLabel[s] %> (<%= hitung[s] %>)</a>
+  <% }) %>
+</div>
+
+<% if (!rows.length) { %>
+  <section class="card">
+    <div class="empty"><p>Tidak ada pendaftaran pada filter ini.</p></div>
+  </section>
+<% } else { %>
+  <section class="card">
+    <div class="card-head"><h2>Daftar pendaftaran</h2><span class="muted small"><%= rows.length %> data</span></div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Waktu</th>
+            <th>Pengelola</th>
+            <th>Jenis</th>
+            <th>Lokasi</th>
+            <th>Pelanggan</th>
+            <th>Paket</th>
+            <th>Kontak</th>
+            <th>Catatan</th>
+            <th>Status</th>
+            <th>Akun</th>
+            <th>Ubah status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% rows.forEach((p) => { %>
+            <tr>
+              <td class="small nowrap"><%= p.created_at %></td>
+              <td>
+                <strong><%= p.nama %></strong><br>
+                <span class="small muted"><%= p.usaha %></span>
+              </td>
+              <td><span class="badge badge-info"><%= jenisLabel[p.jenis] || p.jenis %></span></td>
+              <td class="small"><%= p.lokasi %></td>
+              <td class="small"><%= p.jumlah_pelanggan || '—' %></td>
+              <td class="small"><%= p.paket_nama || '—' %></td>
+              <td class="small">
+                <% if (p.wa) { %><a href="<%= p.wa %>" target="_blank" rel="noopener"><%= p.whatsapp %></a><% } else { %><%= p.whatsapp %><% } %>
+                <% if (p.email) { %><br><span class="muted"><%= p.email %></span><% } %>
+              </td>
+              <td class="small"><%= p.pesan || '—' %></td>
+              <td><span class="badge <%= badgeKelas(p.status) %>"><%= statusLabel[p.status] %></span></td>
+              <td>
+                <% if (p.akun_username) { %>
+                  <span class="badge badge-success"><%= p.akun_username %></span><br>
+                  <a class="small" href="/pengguna">Kelola akun</a>
+                <% } else { %>
+                  <button class="btn btn-primary btn-sm" type="button" data-modal-open="modalBuatAkun"
+                    data-akun-id="<%= p.id %>"
+                    data-akun-nama="<%= p.nama %>"
+                    data-akun-username="<%= p.saran_username %>"
+                    data-akun-password="<%= p.saran_password %>"
+                    data-akun-role="<%= p.saran_role %>"
+                    data-akun-paket="<%= p.paket_id || '' %>"
+                    data-akun-lokasi="<%= p.lokasi %>"
+                    data-akun-usaha="<%= p.usaha %>">Buat akun</button>
+                <% } %>
+              </td>
+              <td>
+                <form action="/superadmin/pendaftaran/<%= p.id %>/status" method="post" class="btn-row" style="margin:0;">
+                  <select name="status" class="input" style="width:132px;">
+                    <% statusOptions.forEach((s) => { %>
+                      <option value="<%= s %>" <%= p.status === s ? 'selected' : '' %>><%= statusLabel[s] %></option>
+                    <% }) %>
+                  </select>
+                  <button class="btn btn-primary btn-sm" type="submit">Simpan</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+<% } %>
+
+<dialog class="modal" id="modalBuatAkun">
+  <div class="modal-head">
+    <div>
+      <h2>Buat akun pengelola</h2>
+      <span class="muted" id="akunJudul">—</span>
+    </div>
+    <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+  </div>
+  <div class="modal-body">
+    <p class="small muted" id="akunInfo" style="margin-bottom:12px;"></p>
+    <form id="formBuatAkun" action="/superadmin/pendaftaran/0/akun" method="post">
+      <div class="form-grid">
+        <div class="field">
+          <label>Nama pengelola</label>
+          <input class="input" name="nama" required>
+          <span class="small muted">Terisi dari formulir pendaftaran, boleh diperbaiki.</span>
+        </div>
+        <div class="field">
+          <label>Username</label>
+          <input class="input" name="username" required autocomplete="off" pattern="[a-z0-9][a-z0-9._\-]{2,29}">
+        </div>
+        <div class="field">
+          <label>Kata sandi sementara</label>
+          <input class="input" name="password" required minlength="8" autocomplete="off">
+          <span class="small muted">Kirim ke pendaftar lewat WhatsApp, minta diganti setelah masuk.</span>
+        </div>
+        <div class="field">
+          <label>Peran</label>
+          <select name="role">
+            <% roleAkunOptions.forEach((r) => { %>
+              <option value="<%= r %>"><%= roleLabel[r] || r %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>Paket langganan</label>
+          <select name="paket_id">
+            <% (paketList || []).forEach((pk) => { %>
+              <option value="<%= pk.id %>"><%= pk.nama %> — <%= rupiah(pk.harga) %>/bulan</option>
+            <% }) %>
+          </select>
+          <span class="small muted">Masa aktif awal 30 hari, bisa diperpanjang di menu Langganan Pengelola.</span>
+        </div>
+        <div class="field" id="akunDusunWrap" hidden>
+          <label>Nama dusun</label>
+          <input class="input" name="dusun_baru" placeholder="Nama dusun pengelola">
+          <span class="small muted">Dusun pertama di ruang kerja baru. Bisa diubah nanti di menu Dusun.</span>
+        </div>
+      </div>
+      <p class="small muted" style="margin:0 0 12px;">
+        Akun ini mendapat <strong>ruang kerja baru</strong> (data awal kosong) berisi satu dusun dan contoh tarif Rumah Tangga yang bisa diubah di menu Tarif.
+      </p>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Buat akun &amp; tandai diterima</button>
+        <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<script>
+  (function () {
+    const dlg = document.getElementById('modalBuatAkun');
+    const form = document.getElementById('formBuatAkun');
+    if (!dlg || !form) return;
+    const judul = document.getElementById('akunJudul');
+    const info = document.getElementById('akunInfo');
+    const roleSel = form.querySelector('select[name="role"]');
+    const paketSel = form.querySelector('select[name="paket_id"]');
+    const wrapDusun = document.getElementById('akunDusunWrap');
+    const dusunBaru = form.querySelector('input[name="dusun_baru"]');
+
+    function aturDusun() {
+      const perluDusun = roleSel.value === 'admin_dusun';
+      wrapDusun.hidden = !perluDusun;
+      if (!perluDusun) dusunBaru.value = '';
+    }
+
+    roleSel.addEventListener('change', aturDusun);
+
+    document.querySelectorAll('[data-akun-id]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const d = btn.dataset;
+        form.action = '/superadmin/pendaftaran/' + d.akunId + '/akun';
+        form.elements.nama.value = d.akunNama || '';
+        form.elements.username.value = d.akunUsername || '';
+        form.elements.password.value = d.akunPassword || '';
+        roleSel.value = d.akunRole || 'admin_desa';
+        if (paketSel && d.akunPaket) paketSel.value = d.akunPaket;
+        dusunBaru.value = d.akunUsaha || '';
+        judul.textContent = d.akunNama || '';
+        info.textContent = 'Lokasi: ' + (d.akunLokasi || '—');
+        aturDusun();
+      });
+    });
+
+    aturDusun();
+  })();
+</script>

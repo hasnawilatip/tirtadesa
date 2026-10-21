@@ -1,0 +1,119 @@
+<% const nomorAwal = row ? row.nomor_pelanggan : (typeof nomorPerDusun !== 'undefined' ? (Object.values(nomorPerDusun)[0] || '') : ''); %>
+<form action="<%= row ? `/pelanggan/${row.id}` : '/pelanggan' %>" method="post"<%= row ? '' : ' data-form-pelanggan' %>>
+  <div class="form-grid">
+    <div class="field">
+      <label>Nomor pelanggan</label>
+      <input class="input" name="nomor_pelanggan" value="<%= nomorAwal %>" placeholder="Otomatis (mis. D01-0041)" <%= row ? 'readonly' : 'data-nomor-pelanggan' %>>
+      <% if (!row) { %><span class="small muted">Dibuat otomatis oleh sistem, boleh diubah.</span><% } %>
+    </div>
+    <div class="field"><label>Nama lengkap</label><input class="input" name="nama" value="<%= row ? row.nama : '' %>" required></div>
+    <div class="field"><label>NIK (opsional)</label><input class="input" name="nik" value="<%= row ? (row.nik || '') : '' %>" placeholder="Disamarkan pada tampilan"></div>
+    <div class="field"><label>Telepon / WhatsApp</label><input class="input" name="telepon" value="<%= row ? (row.telepon || '') : '' %>" placeholder="08xxxxxxxxxx"></div>
+    <div class="field span-2"><label>Alamat</label><input class="input" name="alamat" value="<%= row ? (row.alamat || '') : '' %>" placeholder="Jalan / patokan rumah"></div>
+    <div class="field"><label>RT</label><input class="input" name="rt" value="<%= row ? (row.rt || '') : '' %>" placeholder="01"></div>
+    <div class="field"><label>RW</label><input class="input" name="rw" value="<%= row ? (row.rw || '') : '' %>" placeholder="01"></div>
+
+    <div class="field">
+      <label>Dusun</label>
+      <select name="dusun_id" id="dusun_id" required <%= row ? 'disabled' : '' %><%= row ? '' : ' data-dusun-pelanggan' %>>
+        <% dusunList.forEach((d) => { %>
+          <option value="<%= d.id %>" data-nomor="<%= typeof nomorPerDusun !== 'undefined' ? (nomorPerDusun[d.id] || '') : '' %>" <%= row && row.dusun_id === d.id ? 'selected' : '' %>><%= d.nama %></option>
+        <% }) %>
+      </select>
+      <% if (row) { %><input type="hidden" name="dusun_id" value="<%= row.dusun_id %>"><% } %>
+    </div>
+    <div class="field">
+      <label>Sumur sumber air</label>
+      <select name="sumur_id" id="sumur_id" data-selected="<%= row && row.sumur_id ? row.sumur_id : '' %>">
+        <option value="">— Belum ditentukan —</option>
+        <% sumurList.forEach((s) => { %>
+          <option value="<%= s.id %>" data-dusun="<%= s.dusun_id %>" <%= row && row.sumur_id === s.id ? 'selected' : '' %>><%= s.kode %> · <%= s.nama %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="field">
+      <label>Golongan tarif</label>
+      <select name="golongan_id" required>
+        <% golonganList.forEach((g) => { %>
+          <option value="<%= g.id %>" <%= row && row.golongan_id === g.id ? 'selected' : '' %>><%= g.kode %> · <%= g.nama %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="field">
+      <label>Status</label>
+      <select name="status">
+        <option value="aktif" <%= row && row.status === 'aktif' ? 'selected' : '' %>>Aktif</option>
+        <option value="nonaktif" <%= row && row.status === 'nonaktif' ? 'selected' : '' %>>Nonaktif</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Tanggal daftar</label>
+      <input class="input" type="date" name="tanggal_daftar" value="<%= row ? (row.tanggal_daftar || '') : today %>">
+    </div>
+
+    <div class="field">
+      <label>Nomor meter</label>
+      <input class="input" name="nomor_meter"
+        value="<%= meter && meter.nomor_meter ? meter.nomor_meter : (typeof nomorMeterOtomatis !== 'undefined' ? nomorMeterOtomatis : '') %>"
+        <%= row ? '' : 'readonly' %> required>
+      <span class="small muted">
+        <%= row ? 'Ubah hanya bila meter fisik diganti.' : 'Dibuat otomatis oleh sistem dan tidak dapat diubah.' %>
+      </span>
+    </div>
+    <div class="field">
+      <label>Ukuran sambungan (inci)</label>
+      <input class="input" type="number" step="0.1" name="ukuran_inch" value="<%= meter && meter.ukuran_inch ? meter.ukuran_inch : 0.5 %>">
+    </div>
+    <div class="field">
+      <label>Nomor seri meter (pabrik)</label>
+      <input class="input" name="nomor_seri" value="<%= meter && meter.nomor_seri ? meter.nomor_seri : '' %>"
+        placeholder="Mis. 2024-AB-1234567">
+    </div>
+    <div class="field">
+      <label>Merk meter</label>
+      <input class="input" name="merk" value="<%= meter && meter.merk ? meter.merk : '' %>" placeholder="Mis. Itron / Zenner">
+    </div>
+    <div class="field">
+      <label>Tipe meter</label>
+      <input class="input" name="tipe" value="<%= meter && meter.tipe ? meter.tipe : '' %>" placeholder="Mis. Multi-jet 0,5 inci">
+    </div>
+
+    <% if (!row && ['admin_desa', 'admin_dusun'].includes(user.role)) { %>
+      <div class="field span-2">
+        <label style="display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" name="buat_akun" value="1"> Buatkan akun warga otomatis
+        </label>
+        <span class="small muted">Username dibuat dari nomor pelanggan dan kata sandi acak 6 karakter — keduanya ditampilkan setelah pelanggan disimpan.</span>
+      </div>
+    <% } %>
+  </div>
+
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">Simpan pelanggan</button>
+    <% if (typeof modal !== 'undefined' && modal) { %>
+      <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+    <% } else { %>
+      <a class="btn btn-ghost" href="/pelanggan">Batal</a>
+    <% } %>
+  </div>
+</form>
+<% if (!row) { %>
+<script>
+  (function () {
+    const form = document.querySelector('form[data-form-pelanggan]:not([data-terpasang])');
+    if (!form) return;
+    form.dataset.terpasang = '1';
+    const pilihDusun = form.querySelector('[data-dusun-pelanggan]');
+    const inputNomor = form.querySelector('[data-nomor-pelanggan]');
+    if (!pilihDusun || !inputNomor) return;
+
+    inputNomor.addEventListener('input', () => { inputNomor.dataset.manual = '1'; });
+    pilihDusun.addEventListener('change', () => {
+      if (inputNomor.dataset.manual === '1') return;
+      const opsi = pilihDusun.selectedOptions[0];
+      const nomor = opsi ? opsi.dataset.nomor : '';
+      if (nomor) inputNomor.value = nomor;
+    });
+  })();
+</script>
+<% } %>

@@ -1,0 +1,340 @@
+<% const bolehCatat = ['admin_desa', 'admin_dusun', 'petugas_catat'].includes(user.role) && periode.status !== 'tutup'; %>
+<div class="page-head">
+  <div>
+    <h1>Baca Meter · <%= periodeLabel(periode.tahun, periode.bulan) %></h1>
+    <p class="muted">
+      <span class="badge <%= statusKelas(periode.status) %>"><%= statusLabel[periode.status] %></span>
+      · Jatuh tempo <%= tanggal(periode.tanggal_jatuh_tempo) %>
+    </p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-ghost" href="/periode">Daftar periode</a>
+    <% if (bolehCatat) { %>
+      <button class="btn btn-primary" type="button" data-modal-open="modalCatatMeter">＋ Catat meter</button>
+    <% } %>
+    <a class="btn btn-dark" href="/periode/<%= periode.id %>/verifikasi">Verifikasi (<%= progress.diajukan %>)</a>
+  </div>
+</div>
+
+<section class="card">
+  <div class="progress-label">
+    <span>Progres pencatatan</span>
+    <strong><%= progress.terbaca %> / <%= progress.total %> (<%= progress.persen %>%)</strong>
+  </div>
+  <div class="progress"><span style="width:<%= progress.persen %>%"></span></div>
+  <p class="small muted" style="margin-top:8px;">
+    <%= progress.final %> final · <%= progress.diajukan %> menunggu verifikasi
+  </p>
+</section>
+
+<section class="card">
+  <form action="/periode/<%= periode.id %>/baca" method="get" class="filters">
+    <div class="field"><label>Cari</label><input class="input" name="q" value="<%= filters.q %>" placeholder="Nama / nomor / meter"></div>
+    <div class="field">
+      <label>Dusun</label>
+      <select name="dusun">
+        <option value="">Semua</option>
+        <% dusunList.forEach((d) => { %>
+          <option value="<%= d.id %>" <%= filters.dusun === d.id ? 'selected' : '' %>><%= d.nama %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="field">
+      <label>Status baca</label>
+      <select name="status">
+        <option value="">Semua</option>
+        <option value="belum" <%= filters.status === 'belum' ? 'selected' : '' %>>Belum dibaca</option>
+        <option value="draft" <%= filters.status === 'draft' ? 'selected' : '' %>>Draf</option>
+        <option value="diajukan" <%= filters.status === 'diajukan' ? 'selected' : '' %>>Diajukan</option>
+        <option value="final" <%= filters.status === 'final' ? 'selected' : '' %>>Final</option>
+        <option value="ditolak" <%= filters.status === 'ditolak' ? 'selected' : '' %>>Ditolak</option>
+      </select>
+    </div>
+    <div class="field"><button class="btn btn-primary" type="submit">Filter</button></div>
+    <div class="field"><a class="btn btn-ghost" href="/periode/<%= periode.id %>/baca">Reset</a></div>
+  </form>
+
+  <div class="table-wrap" data-hasil="daftar">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Pelanggan</th>
+          <th>Dusun</th>
+          <th>Sumur / Meter</th>
+          <th>Status baca</th>
+          <th class="num">Pemakaian</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!rows.length) { %><tr><td colspan="6" class="empty-cell">Tidak ada pelanggan pada filter ini.</td></tr><% } %>
+        <% rows.forEach((p) => { %>
+          <tr>
+            <td>
+              <strong><%= p.nama %></strong>
+              <div class="small muted"><%= p.nomor_pelanggan %> · <%= p.alamat || '-' %></div>
+            </td>
+            <td><%= p.dusun %></td>
+            <td class="small"><%= p.sumur || '-' %><br><span class="muted"><%= p.nomor_meter %></span></td>
+            <td>
+              <% if (!p.reading_id) { %>
+                <span class="badge badge-muted">Belum dibaca</span>
+              <% } else { %>
+                <span class="badge <%= statusKelas(p.reading_status) %>"><%= statusLabel[p.reading_status] %></span>
+                <% if (p.kondisi_meter && p.kondisi_meter !== 'normal') { %>
+                  <div class="small muted"><%= statusLabel[p.kondisi_meter] %></div>
+                <% } %>
+              <% } %>
+            </td>
+            <td class="num"><%= p.pemakaian_m3 != null ? `${angka(p.pemakaian_m3, 1)} m³` : '-' %></td>
+            <td class="num">
+              <% if (periode.status !== 'tutup') { %>
+                <a class="btn btn-primary btn-sm" href="/periode/<%= periode.id %>/baca/<%= p.id %>">
+                  <%= p.reading_id ? 'Edit' : 'Catat' %>
+                </a>
+              <% } else { %>
+                <span class="small muted">Terkunci</span>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<% if (bolehCatat) { %>
+  <dialog class="modal" id="modalCatatMeter">
+    <div class="modal-head">
+      <div>
+        <h2>Catat angka meter</h2>
+        <span class="muted">Periode <%= periodeLabel(periode.tahun, periode.bulan) %></span>
+      </div>
+      <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="formCatatMeter" action="#" method="post">
+        <div class="field">
+          <label>Pelanggan</label>
+          <div class="combo" id="comboPelangganCatat">
+            <input class="input" id="cariPelangganCatat" placeholder="Ketik nama / nomor pelanggan / nomor meter"
+              autocomplete="off" role="combobox" aria-expanded="false" aria-controls="daftarPelangganCatat">
+            <ul class="combo-list" id="daftarPelangganCatat" role="listbox" hidden></ul>
+          </div>
+          <select id="pilihPelangganCatat" hidden>
+            <option value="">— Pilih pelanggan —</option>
+            <% pelangganList.forEach((p) => { %>
+              <option value="<%= p.id %>" data-cari="<%= `${p.nama} ${p.nomor_pelanggan} ${p.nomor_meter || ''}`.toLowerCase() %>">
+                <%= p.nomor_pelanggan %> · <%= p.nama %><% if (p.nomor_meter) { %> · <%= p.nomor_meter %><% } %>
+              </option>
+            <% }) %>
+          </select>
+          <span class="small muted">Klik kolom, ketik untuk mencari, lalu pilih pelanggan dari daftar.</span>
+        </div>
+
+        <div class="reading-meta" id="infoCatat" hidden>
+          <div class="meta-box"><span>Nomor</span><strong data-info="nomor">—</strong></div>
+          <div class="meta-box"><span>Dusun / sumur</span><strong data-info="dusun">—</strong></div>
+          <div class="meta-box"><span>Meter</span><strong data-info="meter">—</strong></div>
+          <div class="meta-box"><span>Angka lalu</span><strong data-info="lalu">0</strong></div>
+        </div>
+
+        <input type="hidden" name="angka_lalu" value="0">
+        <div class="form-grid">
+          <div class="field">
+            <label>Angka meter kini</label>
+            <input class="input" name="angka_kini" type="number" step="0.01" min="0" required disabled>
+          </div>
+          <div class="field">
+            <label>Kondisi meter</label>
+            <select name="kondisi_meter" disabled>
+              <% ['normal','rusak','macet','tidak_dihuni'].forEach((k) => { %>
+                <option value="<%= k %>"><%= statusLabel[k] %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="field">
+            <label>Tanggal baca</label>
+            <input class="input" type="date" name="tanggal_baca" value="<%= today %>" disabled>
+          </div>
+          <div class="field">
+            <label>Catatan (opsional)</label>
+            <input class="input" name="catatan" placeholder="Mis. meter buram" disabled>
+          </div>
+        </div>
+
+        <div class="calc-box">
+          <span>Pemakaian terhitung</span>
+          <strong id="previewPemakaian">0 m³</strong>
+        </div>
+        <p class="small muted" id="statusCatat" style="margin-bottom:12px;">Pilih pelanggan dulu untuk melihat angka meter lalu.</p>
+
+        <div class="form-actions">
+          <button class="btn btn-ghost" type="submit" name="aksi" value="draft" disabled>Simpan draf</button>
+          <button class="btn btn-primary" type="submit" name="aksi" value="diajukan" disabled>Simpan &amp; ajukan</button>
+          <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <script>
+    (function () {
+      const PERIODE_ID = <%= periode.id %>;
+      const dlg = document.getElementById('modalCatatMeter');
+      if (!dlg) return;
+      const form = document.getElementById('formCatatMeter');
+      const pilih = document.getElementById('pilihPelangganCatat');
+      const cari = document.getElementById('cariPelangganCatat');
+      const info = document.getElementById('infoCatat');
+      const statusEl = document.getElementById('statusCatat');
+      const preview = document.getElementById('previewPemakaian');
+      const inputKini = form.querySelector('[name="angka_kini"]');
+      const inputLalu = form.querySelector('[name="angka_lalu"]');
+      const kondisi = form.querySelector('[name="kondisi_meter"]');
+      const tanggal = form.querySelector('[name="tanggal_baca"]');
+      const catatan = form.querySelector('[name="catatan"]');
+      const tombol = form.querySelectorAll('button[type="submit"]');
+      let angkaLalu = 0;
+
+      // Dropdown pelanggan yang bisa langsung dicari.
+      const daftar = document.getElementById('daftarPelangganCatat');
+      const opsi = [...pilih.options]
+        .filter((o) => o.value)
+        .map((o) => ({ id: o.value, teks: o.textContent.trim(), cari: o.dataset.cari || '' }));
+      let hasil = [];
+      let aktif = -1;
+
+      function tutupDaftar() {
+        daftar.hidden = true;
+        cari.setAttribute('aria-expanded', 'false');
+        aktif = -1;
+      }
+
+      function gambarDaftar() {
+        const q = cari.value.toLowerCase().trim();
+        hasil = opsi.filter((o) => !q || o.cari.includes(q)).slice(0, 40);
+        daftar.textContent = '';
+        if (!hasil.length) {
+          const li = document.createElement('li');
+          li.className = 'combo-empty';
+          li.textContent = 'Pelanggan tidak ditemukan';
+          daftar.appendChild(li);
+        } else {
+          hasil.forEach((o, i) => {
+            const li = document.createElement('li');
+            li.className = 'combo-item' + (i === aktif ? ' active' : '');
+            li.setAttribute('role', 'option');
+            li.dataset.id = o.id;
+            li.textContent = o.teks;
+            li.addEventListener('mousedown', (e) => { e.preventDefault(); pilihPelanggan(o.id); });
+            daftar.appendChild(li);
+          });
+        }
+        daftar.hidden = false;
+        cari.setAttribute('aria-expanded', 'true');
+      }
+
+      function pilihPelanggan(id) {
+        const o = opsi.find((x) => x.id === String(id));
+        pilih.value = id;
+        cari.value = o ? o.teks : '';
+        tutupDaftar();
+        pilih.dispatchEvent(new Event('change'));
+      }
+
+      cari.addEventListener('focus', () => { if (!pilih.value) gambarDaftar(); });
+      cari.addEventListener('input', () => { aktif = -1; gambarDaftar(); });
+      cari.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (daftar.hidden) { gambarDaftar(); return; }
+          aktif = Math.max(0, Math.min(hasil.length - 1, aktif + (e.key === 'ArrowDown' ? 1 : -1)));
+          [...daftar.querySelectorAll('.combo-item')]
+            .forEach((el, i) => el.classList.toggle('active', i === aktif));
+        } else if (e.key === 'Enter' && !daftar.hidden && hasil.length) {
+          e.preventDefault();
+          pilihPelanggan(hasil[aktif >= 0 ? aktif : 0].id);
+        } else if (e.key === 'Escape') {
+          tutupDaftar();
+        }
+      });
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('#comboPelangganCatat')) tutupDaftar();
+      });
+
+      function setAktif(on) {
+        [inputKini, kondisi, tanggal, catatan].forEach((el) => { el.disabled = !on; });
+        tombol.forEach((b) => { b.disabled = !on; });
+      }
+
+      function hitung() {
+        if (kondisi.value !== 'normal') {
+          preview.textContent = 'Mengikuti rata-rata 3 bulan';
+          return;
+        }
+        if (!inputKini.value) { preview.textContent = '0 m³'; return; }
+        const pakai = Math.max(0, Math.round((Number(inputKini.value) - angkaLalu) * 100) / 100);
+        preview.textContent = pakai.toLocaleString('id-ID') + ' m³';
+      }
+
+      pilih.addEventListener('change', async () => {
+        const id = pilih.value;
+        if (!id) {
+          info.hidden = true;
+          statusEl.textContent = 'Pilih pelanggan dulu untuk melihat angka meter lalu.';
+          form.action = '#';
+          setAktif(false);
+          return;
+        }
+        form.action = '/periode/' + PERIODE_ID + '/baca/' + id;
+        setAktif(false);
+        statusEl.textContent = 'Memuat data meter…';
+        try {
+          const r = await fetch('/periode/' + PERIODE_ID + '/angka/' + id);
+          const d = await r.json();
+          if (!r.ok) throw new Error(d.error || 'Gagal memuat data.');
+          angkaLalu = Number(d.angka_lalu) || 0;
+          inputLalu.value = angkaLalu;
+          info.hidden = false;
+          info.querySelector('[data-info="nomor"]').textContent = d.pelanggan.nomor;
+          info.querySelector('[data-info="dusun"]').textContent = d.pelanggan.dusun
+            + (d.pelanggan.sumur ? ' · ' + d.pelanggan.sumur : '');
+          info.querySelector('[data-info="meter"]').textContent = d.pelanggan.meter || '—';
+          info.querySelector('[data-info="lalu"]').textContent = angkaLalu.toLocaleString('id-ID');
+          if (d.existing) {
+            inputKini.value = d.existing.angka_kini;
+            kondisi.value = d.existing.kondisi_meter || 'normal';
+            tanggal.value = d.existing.tanggal_baca || tanggal.value;
+            catatan.value = d.existing.catatan || '';
+            statusEl.textContent = d.existing.status === 'final'
+              ? 'Pembacaan sudah final — hanya admin yang dapat mengoreksi.'
+              : 'Pembacaan periode ini sudah ada, silakan perbarui bila perlu.';
+          } else {
+            inputKini.value = '';
+            kondisi.value = 'normal';
+            catatan.value = '';
+            statusEl.textContent = 'Belum ada pembacaan periode ini — masukkan angka meter kini.';
+          }
+          setAktif(true);
+          hitung();
+          inputKini.focus();
+        } catch (e) {
+          statusEl.textContent = e.message;
+        }
+      });
+
+      inputKini.addEventListener('input', hitung);
+      kondisi.addEventListener('change', hitung);
+      dlg.addEventListener('close', () => {
+        pilih.value = '';
+        cari.value = '';
+        tutupDaftar();
+        info.hidden = true;
+        statusEl.textContent = 'Pilih pelanggan dulu untuk melihat angka meter lalu.';
+        setAktif(false);
+      });
+      setAktif(false);
+    })();
+  </script>
+<% } %>

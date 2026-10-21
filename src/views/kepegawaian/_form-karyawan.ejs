@@ -1,0 +1,87 @@
+<%
+  // Partial isian karyawan; dipakai popup tambah maupun edit.
+  const k = typeof karyawan === 'undefined' ? null : karyawan;
+  const val = (f, d = '') => (k && k[f] !== null && k[f] !== undefined ? k[f] : d);
+%>
+<div class="form-grid">
+  <div class="field">
+    <label>Nomor karyawan</label>
+    <input class="input" value="<%= nomor %>" readonly>
+    <span class="small muted">Dibuat otomatis oleh sistem.</span>
+  </div>
+  <div class="field">
+    <label>Nama lengkap</label>
+    <input class="input" name="nama" value="<%= val('nama') %>" required>
+  </div>
+  <div class="field">
+    <label>NIK</label>
+    <input class="input" name="nik" value="<%= val('nik') %>" placeholder="Opsional">
+  </div>
+  <div class="field">
+    <label>Jabatan</label>
+    <input class="input" name="jabatan" value="<%= val('jabatan') %>" placeholder="Mis. Petugas catat meter">
+  </div>
+  <div class="field">
+    <label>Dusun</label>
+    <select name="dusun_id">
+      <% if (dusunList.length > 1) { %><option value="">— Tingkat desa —</option><% } %>
+      <% dusunList.forEach((d) => { %>
+        <option value="<%= d.id %>" <%= String(val('dusun_id')) === String(d.id) ? 'selected' : '' %>><%= d.nama %></option>
+      <% }) %>
+    </select>
+    <span class="small muted">Menentukan siapa yang boleh mengelola data karyawan ini.</span>
+  </div>
+  <div class="field">
+    <label>No. telepon</label>
+    <input class="input" name="telepon" value="<%= val('telepon') %>" placeholder="Opsional">
+  </div>
+  <div class="field">
+    <label>Tanggal masuk</label>
+    <input class="input" type="date" name="tanggal_masuk" value="<%= val('tanggal_masuk') %>">
+  </div>
+  <div class="field">
+    <label>Tanggal keluar</label>
+    <input class="input" type="date" name="tanggal_keluar" value="<%= val('tanggal_keluar') %>">
+    <span class="small muted">Kosongkan bila masih bekerja.</span>
+  </div>
+  <div class="field">
+    <label>Status</label>
+    <select name="status">
+      <option value="aktif" <%= val('status', 'aktif') === 'aktif' ? 'selected' : '' %>>Aktif</option>
+      <option value="nonaktif" <%= val('status') === 'nonaktif' ? 'selected' : '' %>>Nonaktif</option>
+    </select>
+    <span class="small muted">Hanya karyawan aktif yang dibuatkan slip gaji.</span>
+  </div>
+  <div class="field">
+    <label>Rekening / pembayaran</label>
+    <input class="input" name="rekening" value="<%= val('rekening') %>" placeholder="Mis. BCA 1234567890 a.n. ...">
+  </div>
+
+  <div class="field">
+    <label>Gaji pokok (Rp)</label>
+    <input class="input" type="number" step="1000" min="0" name="gaji_pokok" value="<%= val('gaji_pokok', 0) %>">
+  </div>
+  <div class="field">
+    <label>Tunjangan tetap (Rp)</label>
+    <input class="input" type="number" step="1000" min="0" name="tunjangan_tetap" value="<%= val('tunjangan_tetap', 0) %>">
+    <span class="small muted">Dibayar penuh setiap bulan.</span>
+  </div>
+  <div class="field">
+    <label>Potongan tetap (Rp)</label>
+    <input class="input" type="number" step="1000" min="0" name="potongan_tetap" value="<%= val('potongan_tetap', 0) %>">
+    <span class="small muted">Mis. iuran BPJS/kooperasi.</span>
+  </div>
+  <div class="field">
+    <label>Tarif lembur per jam (Rp)</label>
+    <input class="input" type="number" step="500" min="0" name="tarif_lembur" value="<%= val('tarif_lembur', 0) %>">
+  </div>
+  <div class="field">
+    <label>Potongan per hari alpa (Rp)</label>
+    <input class="input" type="number" step="1000" min="0" name="potongan_alpa" value="<%= val('potongan_alpa', 0) %>">
+    <span class="small muted">Isi 0 agar otomatis dihitung gaji pokok ÷ 25.</span>
+  </div>
+  <div class="field span-2">
+    <label>Catatan</label>
+    <input class="input" name="catatan" value="<%= val('catatan') %>" placeholder="Opsional">
+  </div>
+</div>

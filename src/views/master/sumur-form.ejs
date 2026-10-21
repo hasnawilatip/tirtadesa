@@ -1,0 +1,11 @@
+<div class="page-head">
+  <div>
+    <h1><%= row ? 'Edit Sumur' : 'Tambah Sumur Bor' %></h1>
+    <p class="muted"><%= row ? `${row.kode} · ${row.nama}` : 'Lengkapi data unit sumur bor.' %></p>
+  </div>
+  <div class="page-actions"><a class="btn btn-ghost" href="/sumur">Kembali</a></div>
+</div>
+
+<section class="card">
+  <%- include('_sumur-fields', { row, dusunList, modal: false }) %>
+</section>

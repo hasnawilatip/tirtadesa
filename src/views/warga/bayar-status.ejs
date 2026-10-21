@@ -1,0 +1,116 @@
+<div class="page-head">
+  <div>
+    <h1><%= row.kode %></h1>
+    <p class="muted">
+      <%= statusLabel[row.status] || row.status %> ·
+      <span class="badge <%= row.status === 'dikonfirmasi' ? 'badge-success' : (row.status === 'ditolak' ? 'badge-danger' : 'badge-warning') %>"><%= statusLabel[row.status] || row.status %></span>
+    </p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-ghost" href="/warga/tagihan">← Tagihan saya</a>
+  </div>
+</div>
+
+<% if (row.status === 'menunggu') { %>
+  <div class="alert alert-info">
+    <span>Permintaan pembayaran sudah kami terima. Unggah bukti bayar (bila belum) agar
+      kasir dapat memverifikasi lebih cepat.</span>
+  </div>
+<% } else if (row.status === 'dikonfirmasi') { %>
+  <div class="alert alert-success">
+    <span>Pembayaran Anda sudah diverifikasi. Kwitansi resmi telah terbit dan status tagihan
+      diperbarui otomatis.</span>
+  </div>
+<% } else if (row.status === 'ditolak') { %>
+  <div class="alert alert-error">
+    <span>Permintaan ini ditolak: <strong><%= row.catatan_admin || 'bukti tidak sesuai' %></strong>.
+      Silakan ulangi pembayaran dari halaman tagihan.</span>
+  </div>
+<% } %>
+
+<div class="bayar-grid">
+  <section class="card bayar-ringkas">
+    <div class="card-head"><h2>Nominal</h2></div>
+    <div class="bayar-nominal"><%= rupiah(row.jumlah) %></div>
+    <div class="bayar-rincian">
+      <div><span>Tagihan</span><strong><%= tagihan ? tagihan.nomor_tagihan : '-' %></strong></div>
+      <div><span>Periode</span><strong><%= tagihan ? periodeLabel(tagihan.tahun, tagihan.bulan) : '-' %></strong></div>
+      <div><span>Metode</span><strong><%= saluran ? saluran.nama : '-' %></strong></div>
+      <div><span>Dibuat</span><strong><%= tanggal(row.created_at) %></strong></div>
+    </div>
+    <% if (row.pembayaran_id) { %>
+      <a class="btn btn-primary" style="margin-top:14px;" href="/warga/tagihan/<%= row.tagihan_id %>/cetak"
+        target="_blank" rel="noopener">Lihat struk tagihan</a>
+    <% } %>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Instruksi pembayaran</h2>
+      <span class="muted small"><%= saluran ? (jenisLabel[saluran.jenis] || saluran.jenis) : '-' %></span>
+    </div>
+
+    <% if (!saluran) { %>
+      <div class="empty"><p>Metode pembayaran tidak tersedia lagi. Hubungi kasir desa.</p></div>
+    <% } else { %>
+      <div class="saluran-detail">
+        <div class="saluran-judul">
+          <strong><%= saluran.nama %></strong>
+          <% if (saluran.penyedia) { %><span class="muted small"><%= saluran.penyedia %></span><% } %>
+        </div>
+
+        <% if (saluran.jenis === 'transfer') { %>
+          <div class="salin-baris">
+            <div>
+              <span class="small muted">Nomor rekening</span>
+              <div class="saluran-nomor"><%= saluran.nomor_tujuan || '-' %></div>
+              <span class="small muted">a.n. <%= saluran.atas_nama || '-' %></span>
+            </div>
+            <button class="btn btn-ghost btn-sm" type="button" data-copy="<%= saluran.nomor_tujuan || '' %>">Salin</button>
+          </div>
+        <% } else if (saluran.jenis === 'qris') { %>
+          <% if (saluran.gambar_path) { %>
+            <img class="saluran-qr saluran-qr-besar" src="<%= saluran.gambar_path %>" alt="QRIS <%= saluran.nama %>">
+          <% } %>
+          <p class="small muted">Nominal: <strong><%= rupiah(row.jumlah) %></strong>. Pindai QR di aplikasi
+            pembayaran Anda lalu unggah bukti bayar.</p>
+        <% } else { %>
+          <p class="small muted">Lanjutkan pembayaran di halaman penyedia, lalu kembali ke halaman ini
+            untuk mengunggah bukti.</p>
+          <% if (tujuan) { %>
+            <a class="btn btn-primary" href="<%= tujuan %>" target="_blank" rel="noopener noreferrer">
+              Buka halaman pembayaran
+            </a>
+          <% } %>
+        <% } %>
+
+        <% if (saluran.instruksi) { %>
+          <div class="saluran-instruksi"><%= saluran.instruksi %></div>
+        <% } %>
+      </div>
+    <% } %>
+
+    <% if (row.status === 'menunggu') { %>
+      <hr class="garis">
+      <h3 class="mini-judul">Kirim bukti pembayaran</h3>
+      <% if (row.bukti_path) { %>
+        <p class="small">Bukti terkirim:
+          <a class="link" href="<%= row.bukti_path %>" target="_blank" rel="noopener">lihat berkas</a>
+        </p>
+      <% } %>
+      <form action="/warga/bayar/<%= row.kode %>/bukti" method="post" enctype="multipart/form-data">
+        <div class="field">
+          <label>Berkas bukti (gambar atau PDF, maks. 2 MB)</label>
+          <input class="input" type="file" name="bukti" accept="image/png,image/jpeg,image/webp,application/pdf">
+        </div>
+        <div class="field">
+          <label>Catatan tambahan</label>
+          <input class="input" name="catatan_warga" maxlength="200" value="<%= row.catatan_warga || '' %>">
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Kirim bukti</button>
+        </div>
+      </form>
+    <% } %>
+  </section>
+</div>

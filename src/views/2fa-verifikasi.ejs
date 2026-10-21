@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <title>Verifikasi 2FA · <%= pengaturan.nama_aplikasi %></title>
+  <link rel="stylesheet" href="/css/style.css?v=<%= typeof versiAset !== 'undefined' ? versiAset : '' %>">
+</head>
+<body class="login-body">
+  <%- include('partials/loader') %>
+  <div class="login-wrap" style="grid-template-columns:minmax(0,420px);justify-content:center;">
+    <section class="login-card">
+      <div class="brand brand-login">
+        <div class="brand-mark"><%= brandInisial %></div>
+        <div class="brand-text">
+          <strong><%= pengaturan.nama_aplikasi %></strong>
+          <span>Verifikasi dua faktor</span>
+        </div>
+      </div>
+
+      <p class="small muted" style="margin-bottom:14px;">
+        Buka aplikasi autentikator Anda lalu masukkan kode 6 angka. Anda juga dapat memakai salah satu kode pemulihan.
+      </p>
+
+      <% if (error) { %>
+        <div class="alert alert-error"><span><%= error %></span></div>
+      <% } %>
+
+      <form method="post" action="/2fa/verifikasi" class="login-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="field">
+          <label for="kode">Kode verifikasi</label>
+          <input class="input" id="kode" name="kode" inputmode="numeric" autocomplete="one-time-code"
+                 placeholder="123456 atau XXXXX-XXXXX" maxlength="11" required autofocus>
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">Verifikasi</button>
+      </form>
+
+      <form method="post" action="/logout" style="margin-top:14px;text-align:center;">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button type="submit" class="link-btn">Batalkan dan kembali ke halaman masuk</button>
+      </form>
+    </section>
+  </div>
+
+  <footer class="login-foot">
+    <span>© <%= new Date().getFullYear() %> <%= pengaturan.nama_aplikasi %> · Dikembangkan oleh <strong>Hasnawi Latip</strong></span>
+  </footer>
+
+  <script src="/js/app.js?v=<%= typeof versiAset !== 'undefined' ? versiAset : '' %>"></script>
+</body>
+</html>

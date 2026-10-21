@@ -1,0 +1,137 @@
+<section class="dash-hero">
+  <div>
+    <h1>Halo, <%= user.nama.split(' ')[0] %> 👋</h1>
+    <% if (pelanggan) { %>
+      <p><%= pelanggan.nomor_pelanggan %> · <%= pelanggan.dusun || 'Tanpa dusun' %><% if (pelanggan.alamat) { %> · <%= pelanggan.alamat %><% } %></p>
+      <div class="hero-chips">
+        <div class="hero-chip"><strong><%= rupiah(sisa) %></strong><span>Total tunggakan</span></div>
+        <div class="hero-chip"><strong><%= angka(belumLunas.length) %></strong><span>Belum lunas</span></div>
+        <div class="hero-chip">
+          <strong><%= pemakaian.length ? angka(pemakaian[0].pemakaian_m3, 1) + ' m³' : '—' %></strong>
+          <span>Pemakaian terakhir</span>
+        </div>
+      </div>
+    <% } else { %>
+      <p>Akun Anda belum ditautkan ke data pelanggan. Hubungi admin desa/dusun untuk menautkannya.</p>
+    <% } %>
+  </div>
+  <div class="hero-actions">
+    <% if (pelanggan && belumLunas.length && bayarInfo.aktif) { %>
+      <% const tagihanPertama = belumLunas[0]; %>
+      <% if (menunggu[tagihanPertama.id]) { %>
+        <a class="btn btn-primary" href="/warga/bayar/<%= menunggu[tagihanPertama.id].kode %>">Status pembayaran</a>
+      <% } else { %>
+        <a class="btn btn-primary" href="/warga/tagihan/<%= tagihanPertama.id %>/bayar">Bayar tagihan</a>
+      <% } %>
+    <% } %>
+    <a class="btn btn-ghost" href="/warga/tagihan">Tagihan saya</a>
+    <a class="btn btn-ghost" href="/warga/keluhan">Ajukan keluhan</a>
+  </div>
+</section>
+
+<% if (pelanggan) { %>
+<div class="quick-grid">
+  <a class="quick-tile quick-blue" href="/warga/tagihan">
+    <span class="quick-ico">🧾</span>
+    <span><strong>Tagihan</strong><span>Lihat & cetak struk</span></span>
+  </a>
+  <a class="quick-tile quick-violet" href="/warga/pemakaian">
+    <span class="quick-ico">💧</span>
+    <span><strong>Pemakaian</strong><span>Riwayat meter air</span></span>
+  </a>
+  <a class="quick-tile quick-amber" href="/warga/keluhan">
+    <span class="quick-ico">✎</span>
+    <span><strong>Keluhan</strong><span>Laporkan gangguan</span></span>
+  </a>
+</div>
+
+<div class="grid-2">
+  <section class="card">
+    <div class="card-head">
+      <h2>Tagihan terakhir</h2>
+      <a class="link" href="/warga/tagihan">Lihat semua</a>
+    </div>
+    <% if (!tagihan.length) { %>
+      <div class="empty"><p>Belum ada tagihan.</p></div>
+    <% } else { %>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Periode</th><th class="num">Total</th><th class="num">Sisa</th><th class="col-aksi">Aksi</th></tr></thead>
+          <tbody>
+            <% tagihan.forEach((t) => { %>
+              <tr>
+                <td><strong><%= periodeLabel(t.tahun, t.bulan) %></strong><div class="small muted"><%= statusLabel[t.status] %></div></td>
+                <td class="num"><%= rupiah(t.total) %></td>
+                <td class="num <%= t.total - t.terbayar > 0 ? 'text-danger' : 'text-success' %>"><%= rupiah(t.total - t.terbayar) %></td>
+                <td class="col-aksi nowrap">
+                  <% const sisaBaris = Math.round((t.total - t.terbayar) * 100) / 100; %>
+                  <% if (t.status !== 'batal' && sisaBaris > 0) { %>
+                    <% if (menunggu[t.id]) { %>
+                      <a class="btn btn-ghost btn-sm" href="/warga/bayar/<%= menunggu[t.id].kode %>">Status bayar</a>
+                    <% } else if (bayarInfo.aktif) { %>
+                      <a class="btn btn-primary btn-sm" href="/warga/tagihan/<%= t.id %>/bayar">Bayar</a>
+                    <% } %>
+                  <% } %>
+                  <a class="btn btn-ghost btn-sm" href="/warga/tagihan/<%= t.id %>/cetak" target="_blank" rel="noopener">Struk</a>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Pemakaian terakhir</h2>
+      <a class="link" href="/warga/pemakaian">Lihat semua</a>
+    </div>
+    <% if (!pemakaian.length) { %>
+      <div class="empty"><p>Belum ada pembacaan meter.</p></div>
+    <% } else { %>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Periode</th><th class="num">Awal</th><th class="num">Akhir</th><th class="num">Pakai</th></tr></thead>
+          <tbody>
+            <% pemakaian.forEach((p) => { %>
+              <tr>
+                <td><strong><%= periodeLabel(p.tahun, p.bulan) %></strong></td>
+                <td class="num"><%= angka(p.angka_lalu, 1) %></td>
+                <td class="num"><%= angka(p.angka_kini, 1) %></td>
+                <td class="num"><%= angka(p.pemakaian_m3, 1) %> m³</td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </section>
+</div>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Keluhan saya</h2>
+    <a class="link" href="/warga/keluhan">Ajukan keluhan</a>
+  </div>
+  <% if (!keluhan.length) { %>
+    <div class="empty"><p>Belum ada keluhan. Sampaikan jika ada gangguan air atau meter.</p></div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Tanggal</th><th>Kategori</th><th>Status</th><th>Tindak lanjut</th></tr></thead>
+        <tbody>
+          <% keluhan.forEach((k) => { %>
+            <tr>
+              <td><%= tanggal(k.tanggal_lapor) %></td>
+              <td><%= k.kategori %></td>
+              <td><span class="badge <%= statusKelas(k.status) %>"><%= statusLabel[k.status] || k.status %></span></td>
+              <td class="small"><%= k.tindak_lanjut || '—' %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>
+<% } %>

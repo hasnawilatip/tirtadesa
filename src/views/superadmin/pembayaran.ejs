@@ -1,0 +1,286 @@
+<div class="page-head">
+  <div>
+    <h1>Pembayaran Online</h1>
+    <p class="muted">
+      Saluran pembayaran yang Anda sediakan di sini muncul sebagai tombol <strong>Bayar</strong>
+      pada portal warga. Warga diarahkan ke rekening/QRIS/link pembayaran milik pengelola,
+      lalu kasir desa memverifikasi bukti bayarnya.
+    </p>
+  </div>
+  <div class="page-actions">
+    <button class="btn btn-primary" type="button" data-modal-open="modalSaluran">+ Tambah saluran</button>
+    <a class="btn btn-ghost" href="/superadmin/langganan">Langganan pengelola</a>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="card kpi kpi-amber">
+    <span class="kpi-icon">⏳</span>
+    <span class="kpi-label">Menunggu verifikasi</span>
+    <strong class="kpi-value"><%= angka(ringkas.menunggu) %></strong>
+    <span class="kpi-foot"><%= rupiah(ringkas.nilai_menunggu) %> dari warga</span>
+  </div>
+  <div class="card kpi kpi-teal">
+    <span class="kpi-icon">✅</span>
+    <span class="kpi-label">Terkonfirmasi</span>
+    <strong class="kpi-value"><%= angka(ringkas.dikonfirmasi) %></strong>
+    <span class="kpi-foot">Sudah menjadi kwitansi</span>
+  </div>
+  <div class="card kpi kpi-blue">
+    <span class="kpi-icon">🏦</span>
+    <span class="kpi-label">Saluran aktif</span>
+    <strong class="kpi-value"><%= angka(saluran.filter((s) => s.is_active).length) %></strong>
+    <span class="kpi-foot">Dari <%= angka(saluran.length) %> saluran</span>
+  </div>
+  <div class="card kpi <%= setelan.aktif ? 'kpi-violet' : 'kpi-slate' %>">
+    <span class="kpi-icon"><%= setelan.aktif ? '🟢' : '⚪' %></span>
+    <span class="kpi-label">Status layanan</span>
+    <strong class="kpi-value"><%= setelan.aktif ? 'Aktif' : 'Nonaktif' %></strong>
+    <span class="kpi-foot">Tombol Bayar di portal warga</span>
+  </div>
+</div>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Setelan layanan</h2>
+    <span class="muted small">Berlaku untuk seluruh pengelola</span>
+  </div>
+  <form action="/superadmin/pembayaran/setelan" method="post">
+    <div class="form-grid">
+      <div class="field">
+        <label>Status pembayaran online</label>
+        <select name="bayar_online_aktif">
+          <option value="1" <%= setelan.aktif ? 'selected' : '' %>>Aktif — tombol Bayar tampil untuk warga</option>
+          <option value="0" <%= !setelan.aktif ? 'selected' : '' %>>Nonaktif — warga membayar lewat kasir</option>
+        </select>
+      </div>
+      <div class="field span-2">
+        <label>Catatan untuk warga</label>
+        <textarea class="input" name="bayar_online_info" rows="2"
+          placeholder="Mis. pembayaran diverifikasi 1×24 jam pada hari kerja."><%= setelan.catatan %></textarea>
+        <span class="small muted">Tampil di halaman pembayaran warga.</span>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Simpan setelan</button>
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Saluran pembayaran</h2>
+    <span class="muted small"><%= saluran.length %> saluran</span>
+  </div>
+  <% if (!saluran.length) { %>
+    <div class="empty">
+      <p>Belum ada saluran pembayaran. Tambahkan rekening bank, QRIS, atau link pembayaran
+        agar warga bisa membayar dari portalnya.</p>
+    </div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Saluran</th>
+            <th>Jenis</th>
+            <th>Tujuan</th>
+            <th class="num">Urutan</th>
+            <th>Status</th>
+            <th class="col-aksi"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% saluran.forEach((s) => { %>
+            <tr>
+              <td>
+                <strong><%= s.nama %></strong>
+                <div class="small muted"><%= s.penyedia || '-' %></div>
+              </td>
+              <td><span class="badge badge-info"><%= jenisLabel[s.jenis] || s.jenis %></span></td>
+              <td class="small">
+                <% if (s.jenis === 'transfer') { %>
+                  <strong><%= s.nomor_tujuan || '-' %></strong>
+                  <div class="muted">a.n. <%= s.atas_nama || '-' %></div>
+                <% } else if (s.jenis === 'qris') { %>
+                  <% if (s.gambar_path) { %>
+                    <a class="link" href="<%= s.gambar_path %>" target="_blank" rel="noopener">Lihat gambar QRIS</a>
+                  <% } else { %>
+                    <span class="muted">Belum ada gambar QRIS</span>
+                  <% } %>
+                  <% if (s.nomor_tujuan) { %><div class="muted">NMID <%= s.nomor_tujuan %></div><% } %>
+                <% } else { %>
+                  <span class="teks-potong" title="<%= s.url_bayar || '' %>"><%= s.url_bayar || '-' %></span>
+                <% } %>
+              </td>
+              <td class="num"><%= s.urutan %></td>
+              <td><span class="badge <%= s.is_active ? 'badge-success' : 'badge-muted' %>"><%= s.is_active ? 'Aktif' : 'Nonaktif' %></span></td>
+              <td class="num col-aksi nowrap">
+                <button class="link" type="button" data-modal-open="modalSaluran<%= s.id %>">Ubah</button>
+                <form action="/superadmin/pembayaran/saluran/<%= s.id %>/toggle" method="post" style="display:inline;">
+                  <button class="link" type="submit"><%= s.is_active ? 'Nonaktifkan' : 'Aktifkan' %></button>
+                </form>
+                <form action="/superadmin/pembayaran/saluran/<%= s.id %>/hapus" method="post" style="display:inline;"
+                  data-confirm="Hapus saluran <%= s.nama %>?">
+                  <button class="link text-danger" type="submit">Hapus</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Transaksi warga terbaru</h2>
+    <span class="muted small">60 transaksi terakhir</span>
+  </div>
+  <% if (!transaksi.length) { %>
+    <div class="empty"><p>Belum ada pembayaran online dari warga.</p></div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Kode / Waktu</th>
+            <th>Pengelola</th>
+            <th>Pelanggan</th>
+            <th class="num">Jumlah</th>
+            <th>Saluran</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% transaksi.forEach((t) => { %>
+            <tr>
+              <td>
+                <strong><%= t.kode %></strong>
+                <div class="small muted"><%= tanggal(t.created_at) %></div>
+              </td>
+              <td class="small"><%= t.desa %></td>
+              <td class="small">
+                <%= t.pelanggan %>
+                <div class="muted"><%= t.nomor_tagihan %></div>
+              </td>
+              <td class="num"><%= rupiah(t.jumlah) %></td>
+              <td class="small"><%= t.saluran || '-' %></td>
+              <td><span class="badge <%= t.status === 'dikonfirmasi' ? 'badge-success' : (t.status === 'ditolak' ? 'badge-danger' : 'badge-warning') %>"><%= statusLabel[t.status] || t.status %></span></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>
+
+<dialog class="modal" id="modalSaluran">
+  <div class="modal-head">
+    <div>
+      <h2>Tambah saluran pembayaran</h2>
+      <span class="muted">Rekening bank, QRIS, atau link halaman pembayaran.</span>
+    </div>
+    <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+  </div>
+  <div class="modal-body">
+    <form action="/superadmin/pembayaran/saluran" method="post" enctype="multipart/form-data">
+      <div class="form-grid">
+        <div class="field"><label>Nama saluran</label><input class="input" name="nama" required placeholder="Mis. Transfer BCA"></div>
+        <div class="field">
+          <label>Jenis</label>
+          <select name="jenis">
+            <option value="transfer">Transfer bank</option>
+            <option value="qris">QRIS</option>
+            <option value="link">Link pembayaran (gateway)</option>
+          </select>
+        </div>
+        <div class="field"><label>Penyedia</label><input class="input" name="penyedia" placeholder="Mis. Bank BCA / Midtrans"></div>
+        <div class="field"><label>Nomor tujuan</label><input class="input" name="nomor_tujuan" placeholder="No. rekening / NMID QRIS"></div>
+        <div class="field"><label>Atas nama</label><input class="input" name="atas_nama" placeholder="Nama pemilik rekening"></div>
+        <div class="field"><label>Urutan tampil</label><input class="input" type="number" min="1" name="urutan" value="1"></div>
+        <div class="field span-2">
+          <label>URL pembayaran (khusus jenis link)</label>
+          <input class="input" name="url_bayar" placeholder="https://pay.contoh.com/checkout?ref={kode}&amount={total}">
+          <span class="small muted">Placeholder: <code>{kode}</code> <code>{total}</code> <code>{tagihan}</code> <code>{pelanggan}</code></span>
+        </div>
+        <div class="field span-2">
+          <label>Gambar QRIS (opsional)</label>
+          <input class="input" type="file" name="gambar" accept="image/png,image/jpeg,image/webp">
+          <span class="small muted">PNG/JPG/WebP maks. 2 MB.</span>
+        </div>
+        <div class="field span-2">
+          <label>Instruksi untuk warga</label>
+          <textarea class="input" name="instruksi" rows="3"
+            placeholder="Mis. transfer sesuai nominal, lalu unggah bukti transfer."></textarea>
+        </div>
+        <div class="field span-2">
+          <label>Status</label>
+          <input type="hidden" name="is_active" value="0">
+          <label><input type="checkbox" name="is_active" value="1" checked> Aktifkan saluran ini</label>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Simpan saluran</button>
+        <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<% saluran.forEach((s) => { %>
+  <dialog class="modal" id="modalSaluran<%= s.id %>">
+    <div class="modal-head">
+      <div>
+        <h2>Ubah saluran <%= s.nama %></h2>
+        <span class="muted"><%= jenisLabel[s.jenis] || s.jenis %></span>
+      </div>
+      <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+    </div>
+    <div class="modal-body">
+      <form action="/superadmin/pembayaran/saluran/<%= s.id %>" method="post" enctype="multipart/form-data">
+        <div class="form-grid">
+          <div class="field"><label>Nama saluran</label><input class="input" name="nama" value="<%= s.nama %>" required></div>
+          <div class="field">
+            <label>Jenis</label>
+            <select name="jenis">
+              <option value="transfer" <%= s.jenis === 'transfer' ? 'selected' : '' %>>Transfer bank</option>
+              <option value="qris" <%= s.jenis === 'qris' ? 'selected' : '' %>>QRIS</option>
+              <option value="link" <%= s.jenis === 'link' ? 'selected' : '' %>>Link pembayaran (gateway)</option>
+            </select>
+          </div>
+          <div class="field"><label>Penyedia</label><input class="input" name="penyedia" value="<%= s.penyedia || '' %>"></div>
+          <div class="field"><label>Nomor tujuan</label><input class="input" name="nomor_tujuan" value="<%= s.nomor_tujuan || '' %>"></div>
+          <div class="field"><label>Atas nama</label><input class="input" name="atas_nama" value="<%= s.atas_nama || '' %>"></div>
+          <div class="field"><label>Urutan tampil</label><input class="input" type="number" min="1" name="urutan" value="<%= s.urutan %>"></div>
+          <div class="field span-2">
+            <label>URL pembayaran (khusus jenis link)</label>
+            <input class="input" name="url_bayar" value="<%= s.url_bayar || '' %>">
+            <span class="small muted">Placeholder: <code>{kode}</code> <code>{total}</code> <code>{tagihan}</code> <code>{pelanggan}</code></span>
+          </div>
+          <div class="field span-2">
+            <label>Gambar QRIS (opsional)</label>
+            <input class="input" type="file" name="gambar" accept="image/png,image/jpeg,image/webp">
+            <% if (s.gambar_path) { %>
+              <span class="small muted">Gambar saat ini: <a class="link" href="<%= s.gambar_path %>" target="_blank" rel="noopener">lihat</a> — unggah baru untuk mengganti.</span>
+            <% } %>
+          </div>
+          <div class="field span-2">
+            <label>Instruksi untuk warga</label>
+            <textarea class="input" name="instruksi" rows="3"><%= s.instruksi || '' %></textarea>
+          </div>
+          <div class="field span-2">
+            <label>Status</label>
+            <input type="hidden" name="is_active" value="0">
+            <label><input type="checkbox" name="is_active" value="1" <%= s.is_active ? 'checked' : '' %>> Aktifkan saluran ini</label>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Simpan perubahan</button>
+          <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+<% }) %>

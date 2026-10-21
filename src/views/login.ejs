@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <title>Masuk · <%= pengaturan.nama_aplikasi %></title>
+  <link rel="stylesheet" href="/css/style.css?v=<%= typeof versiAset !== 'undefined' ? versiAset : '' %>">
+</head>
+<body class="login-body">
+  <%- include('partials/loader') %>
+  <div class="login-wrap">
+    <section class="login-hero">
+      <div class="hero-badge">PLATFORM PENGELOLA SUMUR BOR</div>
+      <h1>Satu dashboard untuk air, tagihan, dan pemasukan Anda.</h1>
+      <p>Bacaan meter, tagihan, pembayaran, hingga laporan — semuanya tercatat rapi dan siap Anda buka kapan saja.</p>
+      <ul class="hero-list">
+        <li>Catat meter dengan foto bukti, tanpa buku tulis</li>
+        <li>Tagihan &amp; denda dihitung otomatis</li>
+        <li>Pantau pemasukan, tunggakan, dan produksi air</li>
+      </ul>
+    </section>
+
+    <section class="login-card">
+      <a class="login-back" href="/">← Kembali ke beranda</a>
+      <div class="brand brand-login">
+        <% if (pengaturan.logo_path) { %>
+          <img class="brand-logo" src="<%= pengaturan.logo_path %>" alt="Logo <%= pengaturan.nama_aplikasi %>">
+        <% } else { %>
+          <div class="brand-mark"><%= brandInisial %></div>
+        <% } %>
+        <div class="brand-text">
+          <strong><%= pengaturan.nama_aplikasi %></strong>
+          <span>Masuk ke aplikasi</span>
+        </div>
+      </div>
+
+      <% if (error) { %>
+        <div class="alert alert-error"><span><%= error %></span></div>
+      <% } %>
+
+      <form method="post" action="/login" class="login-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="field">
+          <label for="username">Username</label>
+          <input class="input" id="username" name="username" value="<%= username %>" autocomplete="username" required autofocus>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="input-wrap">
+            <input class="input" id="password" name="password" type="password" autocomplete="current-password" required>
+            <button class="input-toggle" type="button" data-toggle-password="password" aria-label="Tampilkan password">👁</button>
+          </div>
+        </div>
+        <div class="login-row">
+          <label class="check"><input type="checkbox" id="ingat" name="ingat" value="1"> Ingat saya</label>
+          <a class="link" href="/lupa-password">Lupa password?</a>
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">Masuk</button>
+      </form>
+
+      <p class="small muted" style="margin-top:14px;text-align:center;">Belum terdaftar sebagai pengelola? <a class="link" href="/gabung">Gabung di sini</a></p>
+
+      
+    </section>
+  </div>
+
+  <footer class="login-foot">
+    <span>© <%= new Date().getFullYear() %> <%= pengaturan.nama_aplikasi %> · Dikembangkan oleh <strong>Hasnawi Latip</strong></span>
+  </footer>
+
+  <script src="/js/app.js?v=<%= typeof versiAset !== 'undefined' ? versiAset : '' %>"></script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<div class="page-head">
+  <div>
+    <h1>Bayar Tagihan</h1>
+    <p class="muted">
+      <%= periodeLabel(tagihan.tahun, tagihan.bulan) %> · <%= tagihan.nomor_tagihan %>
+      · <span class="badge <%= statusKelas(tagihan.status) %>"><%= statusLabel[tagihan.status] %></span>
+    </p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-ghost" href="/warga/tagihan">← Tagihan saya</a>
+    <a class="btn btn-ghost" href="/warga/tagihan/<%= tagihan.id %>/cetak" target="_blank" rel="noopener">Struk</a>
+  </div>
+</div>
+
+<div class="bayar-grid">
+  <section class="card bayar-ringkas">
+    <div class="card-head"><h2>Yang harus dibayar</h2></div>
+    <div class="bayar-nominal"><%= rupiah(sisa) %></div>
+    <div class="bayar-rincian">
+      <div><span>Total tagihan</span><strong><%= rupiah(tagihan.total) %></strong></div>
+      <div><span>Sudah dibayar</span><strong class="text-success"><%= rupiah(tagihan.terbayar) %></strong></div>
+      <div><span>Jatuh tempo</span><strong><%= tanggal(tagihan.jatuh_tempo) %></strong></div>
+    </div>
+    <% if (bayarInfo.catatan) { %>
+      <p class="small muted" style="margin:14px 0 0;"><%= bayarInfo.catatan %></p>
+    <% } %>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Pilih metode pembayaran</h2>
+      <span class="muted small">Disediakan pengelola</span>
+    </div>
+
+    <% if (alasanBlokir) { %>
+      <div class="alert alert-error" style="margin:0;"><span><%= alasanBlokir %></span></div>
+    <% } else if (menunggu) { %>
+      <div class="alert alert-warning" style="margin:0 0 14px;">
+        <span>
+          Anda sudah mengirim pembayaran dengan kode <strong><%= menunggu.kode %></strong>
+          dan sedang menunggu verifikasi kasir.
+          <a class="link" href="/warga/bayar/<%= menunggu.kode %>">Lihat status</a>
+        </span>
+      </div>
+    <% } %>
+
+    <% if (!alasanBlokir && !saluran.length) { %>
+      <div class="empty">
+        <p>Belum ada metode pembayaran online yang aktif. Silakan bayar langsung ke kasir desa.</p>
+      </div>
+    <% } else if (!alasanBlokir) { %>
+      <form action="/warga/tagihan/<%= tagihan.id %>/bayar" method="post">
+        <div class="saluran-list">
+          <% saluran.forEach((s) => { %>
+            <label class="saluran-kartu <%= terpilih && terpilih.id === s.id ? 'is-pilih' : '' %>">
+              <input type="radio" name="saluran_id" value="<%= s.id %>" required
+                <%= terpilih && terpilih.id === s.id ? 'checked' : '' %>>
+              <div class="saluran-isi">
+                <div class="saluran-judul">
+                  <strong><%= s.nama %></strong>
+                  <span class="badge badge-info"><%= jenisLabel[s.jenis] || s.jenis %></span>
+                </div>
+                <% if (s.penyedia) { %><div class="small muted"><%= s.penyedia %></div><% } %>
+                <% if (s.jenis === 'transfer') { %>
+                  <div class="saluran-nomor"><%= s.nomor_tujuan || '-' %></div>
+                  <div class="small muted">a.n. <%= s.atas_nama || '-' %></div>
+                <% } else if (s.jenis === 'qris') { %>
+                  <% if (s.gambar_path) { %>
+                    <img class="saluran-qr" src="<%= s.gambar_path %>" alt="QRIS <%= s.nama %>">
+                  <% } %>
+                  <% if (s.nomor_tujuan) { %><div class="small muted">NMID <%= s.nomor_tujuan %></div><% } %>
+                <% } else { %>
+                  <div class="small muted">Anda akan diarahkan ke halaman pembayaran
+                    <%= s.penyedia || 'penyedia' %>.</div>
+                <% } %>
+                <% if (s.instruksi) { %><div class="small saluran-instruksi"><%= s.instruksi %></div><% } %>
+              </div>
+            </label>
+          <% }) %>
+        </div>
+
+        <div class="field" style="margin-top:14px;">
+          <label>Catatan (opsional)</label>
+          <input class="input" name="catatan_warga" maxlength="200" placeholder="Mis. transfer dari rekening istri">
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">
+            Lanjutkan pembayaran <%= rupiah(sisa) %>
+          </button>
+          <a class="btn btn-ghost" href="/warga/tagihan">Batal</a>
+        </div>
+        <p class="small muted">
+          Setelah membayar, unggah bukti transfer pada halaman berikutnya. Kasir desa akan
+          memverifikasi dan kwitansi otomatis terbit.
+        </p>
+      </form>
+    <% } %>
+  </section>
+</div>

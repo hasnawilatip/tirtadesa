@@ -1,0 +1,154 @@
+<div class="page-head">
+  <div>
+    <h1><%= tag.nomor %></h1>
+    <p class="muted">
+      <%= tag.paket_nama %> · periode <%= tanggal(tag.periode_mulai) %> – <%= tanggal(tag.periode_sampai) %> ·
+      <span class="badge <%= tag.status === 'lunas' ? 'badge-success' : (tag.status === 'menunggu' ? 'badge-warning' : (tag.status === 'batal' ? 'badge-muted' : 'badge-danger')) %>"><%= labelStatus[tag.status] || tag.status %></span>
+    </p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-ghost" href="/langganan">← Langganan saya</a>
+  </div>
+</div>
+
+<% if (tag.status === 'lunas') { %>
+  <div class="alert alert-success">
+    <span>Tagihan ini sudah lunas<%= tag.divalidasi_pada ? ` pada ${tanggal(tag.divalidasi_pada)}` : '' %>.
+      Masa aktif langganan sudah diperpanjang.</span>
+  </div>
+<% } else if (tag.status === 'batal') { %>
+  <div class="alert alert-error">
+    <span>Tagihan ini dibatalkan karena siklus langganan diperbarui. Tidak perlu dibayar.</span>
+  </div>
+<% } else if (tag.status === 'menunggu') { %>
+  <div class="alert alert-info">
+    <span>Pembayaran sudah diajukan dan menunggu verifikasi penyedia layanan.
+      <% if (!tag.bukti_path) { %>Silakan unggah bukti bayar di bawah agar bisa diverifikasi.<% } %>
+    </span>
+  </div>
+<% } %>
+
+<div class="bayar-grid">
+  <section class="card bayar-ringkas">
+    <div class="card-head"><h2>Nominal tagihan</h2></div>
+    <div class="bayar-nominal"><%= rupiah(tag.jumlah) %></div>
+    <div class="bayar-rincian">
+      <div><span>Paket</span><strong><%= tag.paket_nama %></strong></div>
+      <div><span>Periode</span><strong><%= tanggal(tag.periode_mulai) %> – <%= tanggal(tag.periode_sampai) %></strong></div>
+      <div><span>Dibuat</span><strong><%= tanggal(tag.created_at) %></strong></div>
+      <div><span>Status</span><strong><%= labelStatus[tag.status] || tag.status %></strong></div>
+    </div>
+    <% if (tag.catatan_admin) { %>
+      <p class="small muted" style="margin:12px 0 0;">Catatan penyedia: <%= tag.catatan_admin %></p>
+    <% } %>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Instruksi pembayaran</h2>
+      <span class="muted small"><%= terpilih ? (jenisLabel[terpilih.jenis] || terpilih.jenis) : 'Belum ada metode' %></span>
+    </div>
+
+    <% if (!saluran.length) { %>
+      <div class="empty">
+        <p>Belum ada metode pembayaran online yang aktif. Hubungi penyedia layanan untuk
+          membayar tagihan ini.</p>
+      </div>
+    <% } else if (!peranDesa) { %>
+      <div class="empty">
+        <p>Pembayaran tagihan langganan dilakukan oleh <strong>admin desa</strong>.
+          Silakan koordinasikan dengan admin desa Anda.</p>
+      </div>
+    <% } else { %>
+      <% if (tag.status === 'belum_bayar') { %>
+        <form action="/langganan/tagihan/<%= tag.id %>/bayar" method="post">
+          <div class="saluran-list">
+            <% saluran.forEach((s) => { %>
+              <label class="saluran-kartu <%= terpilih && terpilih.id === s.id ? 'is-pilih' : '' %>">
+                <input type="radio" name="saluran_id" value="<%= s.id %>" required
+                  <%= terpilih && terpilih.id === s.id ? 'checked' : '' %>>
+                <div class="saluran-isi">
+                  <div class="saluran-judul">
+                    <strong><%= s.nama %></strong>
+                    <span class="badge badge-info"><%= jenisLabel[s.jenis] || s.jenis %></span>
+                  </div>
+                  <% if (s.penyedia) { %><div class="small muted"><%= s.penyedia %></div><% } %>
+                  <% if (s.jenis === 'transfer') { %>
+                    <div class="saluran-nomor"><%= s.nomor_tujuan || '-' %></div>
+                    <div class="small muted">a.n. <%= s.atas_nama || '-' %></div>
+                  <% } else if (s.jenis === 'qris') { %>
+                    <% if (s.gambar_path) { %>
+                      <img class="saluran-qr" src="<%= s.gambar_path %>" alt="QRIS <%= s.nama %>">
+                    <% } %>
+                  <% } else { %>
+                    <div class="small muted">Anda akan diarahkan ke halaman pembayaran
+                      <%= s.penyedia || 'penyedia' %>.</div>
+                  <% } %>
+                </div>
+              </label>
+            <% }) %>
+          </div>
+          <div class="field" style="margin-top:14px;">
+            <label>Catatan (opsional)</label>
+            <input class="input" name="catatan" maxlength="200" placeholder="Mis. transfer dari rekening desa">
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" type="submit">Lanjutkan pembayaran <%= rupiah(tag.jumlah) %></button>
+          </div>
+        </form>
+      <% } else { %>
+        <div class="saluran-detail">
+          <div class="saluran-judul">
+            <strong><%= terpilih.nama %></strong>
+            <% if (terpilih.penyedia) { %><span class="muted small"><%= terpilih.penyedia %></span><% } %>
+          </div>
+          <% if (terpilih.jenis === 'transfer') { %>
+            <div class="salin-baris">
+              <div>
+                <span class="small muted">Nomor rekening</span>
+                <div class="saluran-nomor"><%= terpilih.nomor_tujuan || '-' %></div>
+                <span class="small muted">a.n. <%= terpilih.atas_nama || '-' %></span>
+              </div>
+              <button class="btn btn-ghost btn-sm" type="button" data-copy="<%= terpilih.nomor_tujuan || '' %>">Salin</button>
+            </div>
+          <% } else if (terpilih.jenis === 'qris') { %>
+            <% if (terpilih.gambar_path) { %>
+              <img class="saluran-qr saluran-qr-besar" src="<%= terpilih.gambar_path %>" alt="QRIS <%= terpilih.nama %>">
+            <% } %>
+            <p class="small muted">Nominal: <strong><%= rupiah(tag.jumlah) %></strong>.</p>
+          <% } else if (tujuan) { %>
+            <a class="btn btn-primary" href="<%= tujuan %>" target="_blank" rel="noopener noreferrer">
+              Buka halaman pembayaran
+            </a>
+          <% } %>
+          <% if (terpilih.instruksi) { %>
+            <div class="saluran-instruksi"><%= terpilih.instruksi %></div>
+          <% } %>
+        </div>
+      <% } %>
+    <% } %>
+
+    <% if (['belum_bayar', 'menunggu'].includes(tag.status) && saluran.length && peranDesa) { %>
+      <hr class="garis">
+      <h3 class="mini-judul">Kirim bukti pembayaran</h3>
+      <% if (tag.bukti_path) { %>
+        <p class="small">Bukti terkirim:
+          <a class="link" href="<%= tag.bukti_path %>" target="_blank" rel="noopener">lihat berkas</a>
+        </p>
+      <% } %>
+      <form action="/langganan/tagihan/<%= tag.id %>/bukti" method="post" enctype="multipart/form-data">
+        <div class="field">
+          <label>Berkas bukti (gambar atau PDF, maks. 2 MB)</label>
+          <input class="input" type="file" name="bukti" accept="image/png,image/jpeg,image/webp,application/pdf">
+        </div>
+        <div class="field">
+          <label>Catatan tambahan</label>
+          <input class="input" name="catatan" maxlength="200" value="<%= tag.catatan || '' %>">
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Kirim bukti</button>
+        </div>
+      </form>
+    <% } %>
+  </section>
+</div>

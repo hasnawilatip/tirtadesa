@@ -1,0 +1,92 @@
+<div class="print-actions no-print">
+  <a class="btn btn-ghost" href="<%= typeof kembali !== 'undefined' ? kembali : `/tagihan/${tagihan.id}` %>">Kembali</a>
+  <a class="btn btn-ghost" href="<%= typeof kembali !== 'undefined' ? '/warga/tagihan' : '/tagihan' %>">Daftar tagihan</a>
+  <button class="btn btn-primary" type="button" onclick="window.print()">Cetak struk</button>
+</div>
+
+<div class="kwitansi-page">
+  <div class="kwitansi-head">
+    <div class="kwitansi-brand">
+      <% const logoCetak = (desa && desa.logo_path) || pengaturan.logo_path; %>
+      <% if (logoCetak) { %>
+        <img class="kwitansi-logo" src="<%= logoCetak %>" alt="Logo <%= (desa && desa.nama) || pengaturan.nama_aplikasi %>">
+      <% } %>
+      <div>
+        <h1><%= (desa && desa.nama ? desa.nama : pengaturan.nama_aplikasi).toUpperCase() %></h1>
+        <% if (desa && desa.pelaku_usaha) { %><div class="small muted">Pelaku usaha: <%= desa.pelaku_usaha %></div><% } %>
+        <div class="small muted">Struk Tagihan Air</div>
+        <% if (desa && (desa.kecamatan || desa.kabupaten)) { %>
+          <div class="small muted"><%= [desa.kecamatan, desa.kabupaten].filter(Boolean).join(' · ') %></div>
+        <% } %>
+        <% if (desa && desa.alamat) { %><div class="small muted"><%= desa.alamat %></div><% } %>
+        <% if (desa && desa.telepon) { %><div class="small muted"><%= desa.telepon %></div><% } %>
+      </div>
+    </div>
+    <div style="text-align:right;">
+      <div class="small muted">Nomor tagihan</div>
+      <strong><%= tagihan.nomor_tagihan %></strong>
+      <div class="small muted" style="margin-top:4px;">Periode <%= periodeLabel(tagihan.tahun, tagihan.bulan) %></div>
+    </div>
+  </div>
+
+  <table class="kwitansi-table">
+    <tr><td>Nama pelanggan</td><td><strong><%= tagihan.nama %></strong></td></tr>
+    <tr><td>Nomor pelanggan</td><td><%= tagihan.nomor_pelanggan %></td></tr>
+    <tr><td>Alamat</td><td><%= tagihan.alamat || '-' %></td></tr>
+    <tr><td>Dusun</td><td><%= tagihan.dusun %></td></tr>
+    <tr><td>Nomor meter</td><td><%= tagihan.nomor_meter || '-' %></td></tr>
+    <tr><td>Pemakaian</td><td><%= angka(tagihan.pemakaian_m3, 1) %> m³</td></tr>
+    <tr><td>Tanggal terbit</td><td><%= tanggal(tagihan.tanggal_terbit) %></td></tr>
+    <tr><td>Jatuh tempo</td><td><strong><%= tanggal(tagihan.jatuh_tempo) %></strong></td></tr>
+    <tr><td>Status</td><td><%= statusLabel[tagihan.status] %></td></tr>
+  </table>
+
+  <table class="kwitansi-table">
+    <% items.forEach((it) => { %>
+      <tr>
+        <td><%= it.keterangan || it.jenis %></td>
+        <td><%= rupiah(it.subtotal) %></td>
+      </tr>
+    <% }) %>
+    <tr>
+      <td><strong>Total tagihan</strong></td>
+      <td><strong><%= rupiah(tagihan.total) %></strong></td>
+    </tr>
+    <tr>
+      <td>Sudah dibayar</td>
+      <td><%= rupiah(totalDibayar) %></td>
+    </tr>
+    <tr>
+      <td><strong>Sisa yang harus dibayar</strong></td>
+      <td class="kwitansi-total"><%= rupiah(Math.max(0, tagihan.total - totalDibayar)) %></td>
+    </tr>
+  </table>
+
+  <% if (!pembayaran.length) { %>
+    <p class="small muted" style="margin-top:10px;">Belum ada pembayaran tercatat untuk tagihan ini.</p>
+  <% } else { %>
+    <div class="small" style="margin-top:12px;"><strong>Riwayat pembayaran</strong></div>
+    <table class="kwitansi-table">
+      <% pembayaran.forEach((b) => { %>
+        <tr>
+          <td><%= b.nomor_kwitansi %><span class="small muted"> · <%= tanggal(b.tanggal_bayar) %> · <%= b.metode %></span></td>
+          <td><%= b.status === 'batal' ? '(dibatalkan)' : rupiah(b.jumlah) %></td>
+        </tr>
+      <% }) %>
+    </table>
+  <% } %>
+
+  <% if (tagihan.status === 'batal') { %>
+    <p class="badge badge-danger" style="margin-top:12px;">Tagihan dibatalkan</p>
+  <% } %>
+
+  <div style="display:flex;justify-content:space-between;margin-top:42px;">
+    <div class="small muted">Mohon bayar sebelum jatuh tempo. Terima kasih.</div>
+    <div style="text-align:center;">
+      <div class="small muted">Petugas</div>
+      <div style="height:34px;"></div>
+      <div class="small">................</div>
+    </div>
+  </div>
+  <div class="small muted" style="margin-top:16px;text-align:center;">Dicetak dari <%= pengaturan.nama_aplikasi %></div>
+</div>

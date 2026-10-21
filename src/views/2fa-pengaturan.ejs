@@ -1,0 +1,72 @@
+<div class="page-head">
+  <div>
+    <h1>Autentikasi Dua Faktor</h1>
+    <p class="muted">Lindungi akun superadmin dengan kode dari aplikasi autentikator (Google Authenticator, Microsoft Authenticator, Authy).</p>
+  </div>
+</div>
+
+<% if (error) { %>
+  <div class="alert alert-error"><span><%= error %></span></div>
+<% } %>
+
+<% if (recoveryBaru) { %>
+  <div class="card">
+    <h2>Simpan kode pemulihan ini</h2>
+    <p class="muted">Setiap kode hanya dapat dipakai satu kali bila ponsel Anda hilang. Kode tidak akan ditampilkan lagi.</p>
+    <div class="recovery-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:12px;">
+      <% recoveryBaru.forEach((kode) => { %>
+        <code style="background:#f4f8fa;border:1px solid var(--line);border-radius:8px;padding:8px 10px;text-align:center;"><%= kode %></code>
+      <% }) %>
+    </div>
+  </div>
+<% } %>
+
+<% if (aktif) { %>
+  <div class="card">
+    <h2>2FA aktif</h2>
+    <p class="muted">Sisa kode pemulihan: <strong><%= sisaPemulihan %></strong>. Setiap login superadmin akan meminta kode dari aplikasi autentikator.</p>
+    <% if (!wajib) { %>
+      <form method="post" action="/2fa/nonaktif" data-confirm="Matikan autentikasi dua faktor?">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="form-grid">
+          <div class="field">
+            <label for="sandi">Kata sandi</label>
+            <input class="input" id="sandi" name="sandi" type="password" autocomplete="current-password" required>
+          </div>
+          <div class="field">
+            <label for="kode">Kode 2FA</label>
+            <input class="input" id="kode" name="kode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-ghost" type="submit">Matikan 2FA</button>
+        </div>
+      </form>
+    <% } %>
+  </div>
+<% } else { %>
+  <div class="card">
+    <h2>Aktifkan 2FA</h2>
+    <ol class="muted" style="margin:10px 0 16px 18px;line-height:1.7;">
+      <li>Buka aplikasi autentikator lalu pilih <em>Tambah akun → Masukkan kunci setup</em>.</li>
+      <li>Masukkan kunci di bawah (atau buka tautan otpauth pada ponsel).</li>
+      <li>Masukkan kode 6 angka yang muncul untuk mengaktifkan.</li>
+    </ol>
+    <div class="field">
+      <label>Kunci rahasia</label>
+      <input class="input" value="<%= secret %>" readonly onclick="this.select()">
+    </div>
+    <p class="small muted" style="word-break:break-all;">Tautan: <code><%= otpauth %></code></p>
+
+    <form method="post" action="/2fa/pengaturan">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="field">
+        <label for="kode">Kode dari aplikasi autentikator</label>
+        <input class="input" id="kode" name="kode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Aktifkan 2FA</button>
+      </div>
+    </form>
+  </div>
+<% } %>

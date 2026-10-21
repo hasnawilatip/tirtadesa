@@ -1,0 +1,234 @@
+<div class="page-head">
+  <div>
+    <h1>Golongan &amp; Tarif</h1>
+    <p class="muted">Tarif progresif per blok m³, abonemen, minimum pemakaian, dan denda.</p>
+  </div>
+  <% if (adminDesa) { %>
+    <div class="page-actions">
+      <button class="btn btn-primary" type="button" data-modal-open="modalGolongan">Tambah golongan</button>
+    </div>
+  <% } %>
+</div>
+
+<% golongan.forEach((g) => { %>
+  <section class="card">
+    <div class="card-head">
+      <div>
+        <h2><%= g.kode %> · <%= g.nama %></h2>
+        <span class="muted small">Abonemen bulanan <%= rupiah(g.abonemen) %> · Minimum <%= angka(g.min_pemakaian_m3, 0) %> m³ · Denda <%= g.denda_persen %>% (maks <%= g.denda_maks_persen %>%)</span>
+      </div>
+      <span class="badge badge-info"><%= (blokByGolongan[g.id] || []).length %> blok</span>
+    </div>
+
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Blok</th><th>Rentang m³</th><th class="num">Harga / m³</th><th>Berlaku mulai</th><th></th></tr></thead>
+        <tbody>
+          <% if (!(blokByGolongan[g.id] || []).length) { %>
+            <tr><td colspan="5" class="empty-cell">Belum ada blok tarif.</td></tr>
+          <% } %>
+          <% (blokByGolongan[g.id] || []).forEach((b) => { %>
+            <tr>
+              <td><strong>Blok <%= b.blok_ke %></strong></td>
+              <td><%= angka(b.dari_m3, 0) %> – <%= b.sampai_m3 == null ? 'tak terbatas' : angka(b.sampai_m3, 0) %></td>
+              <td class="num"><%= rupiah(b.harga_per_m3) %></td>
+              <td><%= tanggal(b.berlaku_mulai) %></td>
+              <td class="num">
+                <% if (adminDesa) { %>
+                  <div class="btn-row" style="margin:0;justify-content:flex-end;">
+                    <button class="btn btn-ghost btn-sm" type="button" data-modal-open="modalEditBlok"
+                      data-blok-golongan="<%= g.id %>"
+                      data-blok-ke="<%= b.blok_ke %>"
+                      data-blok-dari="<%= b.dari_m3 %>"
+                      data-blok-sampai="<%= b.sampai_m3 == null ? '' : b.sampai_m3 %>"
+                      data-blok-harga="<%= b.harga_per_m3 %>"
+                      data-blok-berlaku="<%= b.berlaku_mulai %>"
+                      data-blok-info="<%= g.kode %> · <%= g.nama %>">Edit</button>
+                    <form action="/tarif/blok/<%= b.id %>/delete" method="post" data-confirm="Hapus blok tarif ini?">
+                      <button class="btn btn-ghost btn-sm" type="submit">Hapus</button>
+                    </form>
+                  </div>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <% if (adminDesa) { %>
+      <div class="btn-row" style="margin-top:14px;justify-content:flex-start;">
+        <button class="btn btn-ghost btn-sm" type="button" data-modal-open="modalEditGolongan<%= g.id %>">Edit abonemen &amp; denda</button>
+        <button class="btn btn-ghost btn-sm" type="button" data-modal-open="modalBlok<%= g.id %>">Tambah / ubah blok</button>
+      </div>
+    <% } %>
+  </section>
+
+  <% if (adminDesa) { %>
+    <dialog class="modal modal-sm" id="modalEditGolongan<%= g.id %>">
+      <div class="modal-head">
+        <div>
+          <h2>Edit golongan</h2>
+          <span class="muted"><%= g.kode %> · <%= g.nama %></span>
+        </div>
+        <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+      </div>
+      <div class="modal-body">
+        <form action="/tarif/golongan/<%= g.id %>" method="post">
+          <div class="form-grid">
+            <div class="field span-2"><label>Nama golongan</label><input class="input" name="nama" value="<%= g.nama %>" required></div>
+            <div class="field span-2">
+              <label>Abonemen bulanan (Rp)</label>
+              <input class="input" type="number" name="abonemen" value="<%= g.abonemen %>">
+              <span class="small muted">Biaya tetap yang ditagihkan setiap bulan untuk semua pelanggan golongan ini.</span>
+            </div>
+            <div class="field">
+              <label>Minimum (m³)</label>
+              <input class="input" type="number" step="0.1" name="min_pemakaian_m3" value="<%= g.min_pemakaian_m3 %>">
+              <span class="small muted">Pemakaian terendah yang tetap ditagih. Contoh: minimum 5 m³, meter hanya 3 m³ → tetap dihitung 5 m³.</span>
+            </div>
+            <div class="field">
+              <label>Denda (%)</label>
+              <input class="input" type="number" step="0.1" name="denda_persen" value="<%= g.denda_persen %>">
+              <span class="small muted">Persentase denda dari total tagihan bila melewati jatuh tempo (belum dihitung otomatis oleh aplikasi).</span>
+            </div>
+            <div class="field">
+              <label>Denda maks (%)</label>
+              <input class="input" type="number" step="0.1" name="denda_maks_persen" value="<%= g.denda_maks_persen %>">
+              <span class="small muted">Batas tertinggi denda, juga dalam % dari total tagihan (belum dihitung otomatis).</span>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" type="submit">Simpan golongan</button>
+            <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+  <% } %>
+
+  <% if (adminDesa) { %>
+    <dialog class="modal modal-sm" id="modalBlok<%= g.id %>">
+      <div class="modal-head">
+        <div>
+          <h2>Tambah / ubah blok</h2>
+          <span class="muted"><%= g.kode %> · <%= g.nama %></span>
+        </div>
+        <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+      </div>
+      <div class="modal-body">
+        <form action="/tarif/blok" method="post">
+          <input type="hidden" name="golongan_id" value="<%= g.id %>">
+          <div class="form-grid">
+            <div class="field"><label>Blok ke</label><input class="input" type="number" name="blok_ke" min="1" required></div>
+            <div class="field"><label>Dari m³</label><input class="input" type="number" step="0.1" name="dari_m3" value="0" required></div>
+            <div class="field"><label>Sampai m³ (kosong = tanpa batas)</label><input class="input" type="number" step="0.1" name="sampai_m3"></div>
+            <div class="field"><label>Harga / m³</label><input class="input" type="number" name="harga_per_m3" required></div>
+            <div class="field span-2"><label>Berlaku mulai</label><input class="input" type="date" name="berlaku_mulai" value="<%= today %>"></div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" type="submit">Simpan blok</button>
+            <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+  <% } %>
+<% }) %>
+
+<% if (adminDesa) { %>
+  <dialog class="modal modal-sm" id="modalEditBlok">
+    <div class="modal-head">
+      <div>
+        <h2>Edit blok tarif</h2>
+        <span class="muted" id="editBlokInfo">—</span>
+      </div>
+      <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+    </div>
+    <div class="modal-body">
+      <form action="/tarif/blok" method="post" id="formEditBlok">
+        <input type="hidden" name="golongan_id">
+        <div class="form-grid">
+          <div class="field">
+            <label>Blok ke</label>
+            <input class="input" type="number" name="blok_ke" readonly>
+          </div>
+          <div class="field">
+            <label>Berlaku mulai</label>
+            <input class="input" type="date" name="berlaku_mulai" required>
+            <span class="small muted">Ubah tanggal bila ingin membuat harga baru tanpa menimpa yang lama.</span>
+          </div>
+          <div class="field"><label>Dari m³</label><input class="input" type="number" step="0.1" name="dari_m3" required></div>
+          <div class="field"><label>Sampai m³ (kosong = tanpa batas)</label><input class="input" type="number" step="0.1" name="sampai_m3"></div>
+          <div class="field span-2"><label>Harga / m³</label><input class="input" type="number" name="harga_per_m3" required></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Simpan perubahan</button>
+          <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <script>
+    (function () {
+      const dlg = document.getElementById('modalEditBlok');
+      if (!dlg) return;
+      const form = dlg.querySelector('form');
+      const info = document.getElementById('editBlokInfo');
+      document.querySelectorAll('[data-blok-ke]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const d = btn.dataset;
+          form.elements.golongan_id.value = d.blokGolongan || '';
+          form.elements.blok_ke.value = d.blokKe || '';
+          form.elements.dari_m3.value = d.blokDari || 0;
+          form.elements.sampai_m3.value = d.blokSampai || '';
+          form.elements.harga_per_m3.value = d.blokHarga || 0;
+          form.elements.berlaku_mulai.value = d.blokBerlaku || '';
+          info.textContent = (d.blokInfo || '') + ' · Blok ' + (d.blokKe || '');
+        });
+      });
+    })();
+  </script>
+<% } %>
+
+<% if (adminDesa) { %>
+  <dialog class="modal" id="modalGolongan">
+    <div class="modal-head">
+      <h2>Tambah golongan baru</h2>
+      <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+    </div>
+    <div class="modal-body">
+      <form action="/tarif/golongan" method="post">
+        <div class="form-grid">
+          <div class="field">
+            <label>Kode</label>
+            <input class="input" name="kode" value="<%= typeof kodeOtomatis !== 'undefined' ? kodeOtomatis : '' %>" placeholder="G1">
+            <span class="small muted">Dibuat otomatis, boleh diubah.</span>
+          </div>
+          <div class="field"><label>Nama</label><input class="input" name="nama" placeholder="Instansi / Sekolah" required></div>
+          <div class="field"><label>Abonemen bulanan (Rp)</label><input class="input" type="number" name="abonemen" value="0"></div>
+          <div class="field">
+            <label>Minimum (m³)</label>
+            <input class="input" type="number" step="0.1" name="min_pemakaian_m3" value="0">
+            <span class="small muted">Pemakaian terendah yang tetap ditagih.</span>
+          </div>
+          <div class="field">
+            <label>Denda (%)</label>
+            <input class="input" type="number" step="0.1" name="denda_persen" value="0">
+            <span class="small muted">Denda bila lewat jatuh tempo (belum dihitung otomatis).</span>
+          </div>
+          <div class="field">
+            <label>Denda maks (%)</label>
+            <input class="input" type="number" step="0.1" name="denda_maks_persen" value="0">
+            <span class="small muted">Batas tertinggi denda dalam % dari total tagihan.</span>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Tambah golongan</button>
+          <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+<% } %>

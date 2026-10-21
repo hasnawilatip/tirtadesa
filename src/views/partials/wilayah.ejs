@@ -1,0 +1,67 @@
+<%
+  // Widget pilihan wilayah bertingkat: Provinsi → Kabupaten/Kota → Kecamatan → Desa/Kelurahan.
+  // Dipakai pada pendaftaran jenis "Desa" (desa/kelurahan) dan "Dusun" (desa induk).
+  const wilayahAktif = typeof aktif !== 'undefined' ? aktif : false;
+  const awalDisabled = wilayahAktif ? '' : 'disabled';
+%>
+<div class="wilayah-widget" data-wilayah="<%= prefix %>">
+  <div class="wilayah-dropdown">
+    <div class="join-grid">
+      <div class="field">
+        <label for="<%= prefix %>_provinsi">Provinsi *</label>
+        <select id="<%= prefix %>_provinsi" name="provinsi" data-required data-wilayah-level="provinsi" <%= awalDisabled %>>
+          <option value="">Memuat data wilayah…</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="<%= prefix %>_kabupaten">Kabupaten/Kota *</label>
+        <select id="<%= prefix %>_kabupaten" name="kabupaten" data-required data-wilayah-level="kabupaten" disabled>
+          <option value="">Pilih provinsi dulu</option>
+        </select>
+      </div>
+    </div>
+    <div class="join-grid">
+      <div class="field">
+        <label for="<%= prefix %>_kecamatan">Kecamatan *</label>
+        <select id="<%= prefix %>_kecamatan" name="kecamatan" data-required data-wilayah-level="kecamatan" disabled>
+          <option value="">Pilih kabupaten dulu</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="<%= prefix %>_desa"><%= labelDesa %> *</label>
+        <select id="<%= prefix %>_desa" name="<%= fieldDesa %>" data-required data-wilayah-level="desa" disabled>
+          <option value="">Pilih kecamatan dulu</option>
+        </select>
+      </div>
+    </div>
+    <p class="small muted wilayah-status">Memuat data wilayah Indonesia…</p>
+  </div>
+
+  <div class="wilayah-manual" hidden>
+    <div class="join-grid">
+      <div class="field">
+        <label for="<%= prefix %>_manual_provinsi">Provinsi *</label>
+        <input class="input" id="<%= prefix %>_manual_provinsi" name="provinsi" data-manual="provinsi"
+          value="<%= form.provinsi || '' %>" data-required disabled>
+      </div>
+      <div class="field">
+        <label for="<%= prefix %>_manual_kabupaten">Kabupaten/Kota *</label>
+        <input class="input" id="<%= prefix %>_manual_kabupaten" name="kabupaten" data-manual="kabupaten"
+          value="<%= form.kabupaten || '' %>" data-required disabled>
+      </div>
+    </div>
+    <div class="join-grid">
+      <div class="field">
+        <label for="<%= prefix %>_manual_kecamatan">Kecamatan *</label>
+        <input class="input" id="<%= prefix %>_manual_kecamatan" name="kecamatan" data-manual="kecamatan"
+          value="<%= form.kecamatan || '' %>" data-required disabled>
+      </div>
+      <div class="field">
+        <label for="<%= prefix %>_manual_desa"><%= labelDesa %> *</label>
+        <input class="input" id="<%= prefix %>_manual_desa" name="<%= fieldDesa %>" data-manual="desa"
+          value="<%= form[fieldDesa] || '' %>" data-required disabled>
+      </div>
+    </div>
+  </div>
+  <button type="button" class="link-btn wilayah-toggle">Isi manual</button>
+</div>

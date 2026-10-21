@@ -1,0 +1,79 @@
+<div class="print-actions no-print">
+  <a class="btn btn-ghost" href="/tagihan/<%= tagihan.id %>">Kembali</a>
+  <button class="btn btn-primary" type="button" onclick="window.print()">Cetak kwitansi</button>
+</div>
+
+<div class="kwitansi-page">
+  <div class="kwitansi-head">
+    <div class="kwitansi-brand">
+      <% const logoKwitansi = (desa && desa.logo_path) || pengaturan.logo_path; %>
+      <% if (logoKwitansi) { %>
+        <img class="kwitansi-logo" src="<%= logoKwitansi %>" alt="Logo <%= (desa && desa.nama) || pengaturan.nama_aplikasi %>">
+      <% } %>
+      <div>
+        <h1><%= (desa && desa.nama ? desa.nama : pengaturan.nama_aplikasi).toUpperCase() %></h1>
+        <% if (desa && desa.pelaku_usaha) { %><div class="small muted">Pelaku usaha: <%= desa.pelaku_usaha %></div><% } %>
+        <div class="small muted"><%= bayar.status === 'batal' ? 'KWITANSI DIBATALKAN' : 'Kwitansi Pembayaran Air' %></div>
+        <% if (desa && (desa.kecamatan || desa.kabupaten)) { %>
+          <div class="small muted"><%= [desa.kecamatan, desa.kabupaten].filter(Boolean).join(' · ') %></div>
+        <% } %>
+        <% if (desa && desa.alamat) { %><div class="small muted"><%= desa.alamat %></div><% } %>
+        <% if (desa && desa.telepon) { %><div class="small muted"><%= desa.telepon %></div><% } %>
+      </div>
+    </div>
+    <div style="text-align:right;">
+      <div class="small muted">Nomor</div>
+      <strong><%= bayar.nomor_kwitansi %></strong>
+      <div class="small muted" style="margin-top:4px;"><%= tanggal(bayar.tanggal_bayar) %></div>
+    </div>
+  </div>
+
+  <table class="kwitansi-table">
+    <tr><td>Nama pelanggan</td><td><strong><%= tagihan.nama %></strong></td></tr>
+    <tr><td>Nomor pelanggan</td><td><%= tagihan.nomor_pelanggan %></td></tr>
+    <tr><td>Dusun</td><td><%= tagihan.dusun %></td></tr>
+    <tr><td>Periode tagihan</td><td><%= periodeLabel(tagihan.tahun, tagihan.bulan) %></td></tr>
+    <tr><td>Nomor tagihan</td><td><%= tagihan.nomor_tagihan %></td></tr>
+    <tr><td>Pemakaian</td><td><%= angka(tagihan.pemakaian_m3, 1) %> m³</td></tr>
+  </table>
+
+  <table class="kwitansi-table">
+    <% items.forEach((it) => { %>
+      <tr>
+        <td><%= it.keterangan || it.jenis %></td>
+        <td><%= rupiah(it.subtotal) %></td>
+      </tr>
+    <% }) %>
+    <tr>
+      <td><strong>Total tagihan</strong></td>
+      <td><strong><%= rupiah(tagihan.total) %></strong></td>
+    </tr>
+    <tr>
+      <td><strong>Jumlah dibayar</strong></td>
+      <td class="kwitansi-total"><%= rupiah(bayar.jumlah) %></td>
+    </tr>
+    <tr>
+      <td>Sisa tagihan</td>
+      <td><strong><%= rupiah(Math.max(0, tagihan.total - totalDibayar)) %></strong></td>
+    </tr>
+  </table>
+
+  <p class="small" style="margin-top:10px;">
+    Terbilang: <strong><%= terbilang(bayar.jumlah) %> rupiah</strong>
+  </p>
+  <p class="small muted" style="margin-top:4px;">Metode: <%= bayar.metode %> · Kasir: <%= bayar.kasir || '-' %></p>
+
+  <% if (bayar.status === 'batal') { %>
+    <p class="badge badge-danger" style="margin-top:12px;">Pembayaran dibatalkan: <%= bayar.alasan_batal || '-' %></p>
+  <% } %>
+
+  <div style="display:flex;justify-content:space-between;margin-top:42px;">
+    <div class="small muted">Terima kasih atas pembayaran Anda.</div>
+    <div style="text-align:center;">
+      <div class="small muted">Kasir</div>
+      <div style="height:34px;"></div>
+      <div class="small"><%= bayar.kasir || '................' %></div>
+    </div>
+  </div>
+  <div class="small muted" style="margin-top:16px;text-align:center;">Dicetak dari <%= pengaturan.nama_aplikasi %></div>
+</div>

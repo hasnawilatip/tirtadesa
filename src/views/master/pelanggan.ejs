@@ -1,0 +1,165 @@
+<% const bolehDaftarPasang = ['admin_desa', 'admin_dusun', 'petugas_catat'].includes(user.role); %>
+<div class="page-head">
+  <div>
+    <h1>Pelanggan</h1>
+    <p class="muted"><%= angka(total) %> pelanggan sesuai filter. Data dibatasi sesuai dusun Anda.</p>
+  </div>
+  <% if (bolehDaftarPasang) { %>
+    <div class="page-actions">
+      <a class="btn btn-primary" href="/pasang?buka=modalPasang">+ Pasang pelanggan baru</a>
+    </div>
+  <% } %>
+</div>
+
+<div class="alert alert-info">
+  <span>
+    Pelanggan baru ditambahkan lewat
+    <a class="link" href="/pasang">Pendaftaran Pasang Baru</a>
+    agar perhitungan pipa/bahan dan persetujuan admin tercatat.
+  </span>
+</div>
+
+<section class="card">
+  <form action="/pelanggan" method="get" class="filters">
+    <div class="field"><label>Cari</label><input class="input" name="q" value="<%= filters.q %>" placeholder="Nama, nomor pelanggan, meter"></div>
+    <div class="field">
+      <label>Dusun</label>
+      <select name="dusun">
+        <option value="">Semua</option>
+        <% dusunList.forEach((d) => { %>
+          <option value="<%= d.id %>" <%= filters.dusun === d.id ? 'selected' : '' %>><%= d.nama %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="field">
+      <label>Sumur</label>
+      <select name="sumur">
+        <option value="">Semua</option>
+        <% sumurList.forEach((s) => { %>
+          <option value="<%= s.id %>" <%= filters.sumur === s.id ? 'selected' : '' %>><%= s.nama %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="field">
+      <label>Status</label>
+      <select name="status">
+        <option value="">Semua</option>
+        <option value="aktif" <%= filters.status === 'aktif' ? 'selected' : '' %>>Aktif</option>
+        <option value="nonaktif" <%= filters.status === 'nonaktif' ? 'selected' : '' %>>Nonaktif</option>
+      </select>
+    </div>
+    <div class="field"><button class="btn btn-primary" type="submit">Filter</button></div>
+    <div class="field"><a class="btn btn-ghost" href="/pelanggan">Reset</a></div>
+  </form>
+
+  <div data-hasil="daftar">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Nomor</th>
+          <th>Nama pelanggan</th>
+          <th class="col-dusun">Dusun</th>
+          <th class="col-sumur">Sumur</th>
+          <th class="col-golongan">Golongan</th>
+          <th class="col-meter">Meter</th>
+          <th class="col-status">Status</th>
+          <th class="col-akun">Akun warga</th>
+          <th class="col-aksi">Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!rows.length) { %>
+          <tr><td colspan="9" class="empty-cell">Tidak ada pelanggan pada filter ini.</td></tr>
+        <% } %>
+        <% rows.forEach((p) => { %>
+          <tr>
+            <td class="nowrap"><a class="link" href="/pelanggan/<%= p.id %>"><%= p.nomor_pelanggan %></a></td>
+            <td>
+              <a class="link" href="/pelanggan/<%= p.id %>"><%= p.nama %></a>
+              <div class="small muted"><%= p.alamat || '-' %></div>
+              <div class="small muted hp-only">Akun: <%= p.akun_username || 'belum ada' %></div>
+            </td>
+            <td class="col-dusun"><%= p.dusun %></td>
+            <td class="col-sumur"><%= p.sumur || '-' %></td>
+            <td class="col-golongan"><%= p.golongan %></td>
+            <td class="small col-meter">
+              <%= p.nomor_meter || '-' %>
+              <% if (p.nomor_seri) { %><div class="muted">SN: <%= p.nomor_seri %></div><% } %>
+            </td>
+            <td class="col-status"><span class="badge <%= p.status === 'aktif' ? 'badge-success' : 'badge-muted' %>"><%= statusLabel[p.status] || p.status %></span></td>
+            <td class="small col-akun">
+              <% if (p.akun_username) { %>
+                <span class="badge <%= p.akun_aktif ? 'badge-success' : 'badge-muted' %>"><%= p.akun_username %></span>
+              <% } else { %>
+                <span class="muted">Belum ada</span>
+              <% } %>
+            </td>
+            <td class="col-aksi">
+              <% if (!p.akun_username && ['admin_desa', 'admin_dusun'].includes(user.role)) { %>
+                <button class="btn btn-ghost btn-sm" type="button" data-modal-open="modalAkun<%= p.id %>">Buat akun</button>
+              <% } else { %>
+                <span class="muted small">—</span>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+
+  <% if (['admin_desa', 'admin_dusun'].includes(user.role)) { %>
+    <% rows.filter((p) => !p.akun_username).forEach((p) => { %>
+      <% const saranUser = String(p.nomor_pelanggan || '').toLowerCase().replace(/[^a-z0-9]/g, ''); %>
+      <dialog class="modal modal-sm" id="modalAkun<%= p.id %>">
+        <div class="modal-head">
+          <div>
+            <h2>Buat akun warga</h2>
+            <span class="muted"><%= p.nomor_pelanggan %> · <%= p.nama %></span>
+          </div>
+          <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+        </div>
+        <div class="modal-body">
+          <form action="/pelanggan/<%= p.id %>/akun" method="post">
+            <div class="form-grid">
+              <div class="field span-2">
+                <label>Username</label>
+                <input class="input" name="username" value="<%= saranUser %>" required minlength="3" maxlength="32">
+                <span class="small muted">Huruf kecil, angka, titik, garis bawah/strip.</span>
+              </div>
+              <div class="field span-2">
+                <label>Kata sandi awal</label>
+                <input class="input" name="password" placeholder="Kosongkan untuk dibuat acak (wajib diganti saat masuk)" minlength="8">
+                <span class="small muted">Tampil sekali setelah akun dibuat — minta pelanggan menggantinya.</span>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-primary" type="submit">Buat akun</button>
+              <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+            </div>
+          </form>
+        </div>
+      </dialog>
+    <% }) %>
+  <% } %>
+
+  <% if (totalPages > 1) { %>
+    <%
+      const buatQuery = (hal) => {
+        const qs = new URLSearchParams();
+        if (filters.q) qs.set('q', filters.q);
+        if (filters.dusun) qs.set('dusun', filters.dusun);
+        if (filters.sumur) qs.set('sumur', filters.sumur);
+        if (filters.status) qs.set('status', filters.status);
+        qs.set('page', hal);
+        return `/pelanggan?${qs.toString()}`;
+      };
+    %>
+    <div class="btn-row">
+      <% if (page > 1) { %><a class="btn btn-ghost btn-sm" href="<%= buatQuery(page - 1) %>">← Sebelumnya</a><% } %>
+      <span class="small muted">Halaman <%= page %> dari <%= totalPages %></span>
+      <% if (page < totalPages) { %><a class="btn btn-ghost btn-sm" href="<%= buatQuery(page + 1) %>">Berikutnya →</a><% } %>
+    </div>
+  <% } %>
+  </div>
+</section>

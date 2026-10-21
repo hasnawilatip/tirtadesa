@@ -1,0 +1,60 @@
+<% const kodeAwal = row ? row.kode : (typeof kodePerDusun !== 'undefined' ? (Object.values(kodePerDusun)[0] || '') : ''); %>
+<form action="<%= row ? `/sumur/${row.id}` : '/sumur' %>" method="post"<%= row ? '' : ' data-form-sumur' %>>
+  <div class="form-grid">
+    <div class="field">
+      <label>Dusun</label>
+      <select name="dusun_id" required<%= row ? '' : ' data-dusun-sumur' %>>
+        <% dusunList.forEach((d) => { %>
+          <option value="<%= d.id %>" data-kode="<%= typeof kodePerDusun !== 'undefined' ? (kodePerDusun[d.id] || '') : '' %>" <%= (row && row.dusun_id === d.id) || (!row && dusunList.length === 1) ? 'selected' : '' %>><%= d.nama %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="field">
+      <label>Kode sumur</label>
+      <input class="input" name="kode" value="<%= kodeAwal %>" placeholder="SB-01"<%= row ? '' : ' data-kode-sumur' %>>
+      <% if (!row) { %><span class="small muted">Dibuat otomatis oleh sistem, silakan ubah bila perlu.</span><% } %>
+    </div>
+    <div class="field span-2"><label>Nama sumur</label><input class="input" name="nama" value="<%= row ? row.nama : '' %>" placeholder="Sumur Bor Melati" required></div>
+    <div class="field span-2"><label>Alamat / lokasi</label><input class="input" name="alamat" value="<%= row ? (row.alamat || '') : '' %>" placeholder="RT/RW, dusun, patokan"></div>
+    <div class="field"><label>Kapasitas (liter/detik)</label><input class="input" type="number" step="0.01" name="kapasitas_lps" value="<%= row && row.kapasitas_lps ? row.kapasitas_lps : '' %>"></div>
+    <div class="field"><label>Tahun bor</label><input class="input" type="number" name="tahun_bor" min="1900" max="2100" value="<%= row && row.tahun_bor ? row.tahun_bor : '' %>"></div>
+    <div class="field"><label>Nomor meter induk</label><input class="input" name="nomor_meter_induk" value="<%= row ? (row.nomor_meter_induk || '') : '' %>"></div>
+    <div class="field">
+      <label>Status</label>
+      <select name="status">
+        <% ['aktif','perbaikan','nonaktif'].forEach((s) => { %>
+          <option value="<%= s %>" <%= row && row.status === s ? 'selected' : '' %>><%= statusLabel[s] %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="field span-2"><label>Catatan</label><textarea name="catatan"><%= row ? (row.catatan || '') : '' %></textarea></div>
+  </div>
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">Simpan</button>
+    <% if (typeof modal !== 'undefined' && modal) { %>
+      <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+    <% } else { %>
+      <a class="btn btn-ghost" href="/sumur">Batal</a>
+    <% } %>
+  </div>
+</form>
+<% if (!row) { %>
+<script>
+  (function () {
+    const form = document.querySelector('form[data-form-sumur]:not([data-terpasang])');
+    if (!form) return;
+    form.dataset.terpasang = '1';
+    const pilihDusun = form.querySelector('[data-dusun-sumur]');
+    const inputKode = form.querySelector('[data-kode-sumur]');
+    if (!pilihDusun || !inputKode) return;
+
+    inputKode.addEventListener('input', () => { inputKode.dataset.manual = '1'; });
+    pilihDusun.addEventListener('change', () => {
+      if (inputKode.dataset.manual === '1') return;
+      const opsi = pilihDusun.selectedOptions[0];
+      const kode = opsi ? opsi.dataset.kode : '';
+      if (kode) inputKode.value = kode;
+    });
+  })();
+</script>
+<% } %>

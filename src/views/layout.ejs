@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <title><%= title %> · <%= pengaturan.nama_aplikasi %></title>
+  <script>
+    // Terapkan status sidebar sebelum halaman digambar agar tidak berkedip.
+    try {
+      if (localStorage.getItem('tirtadesa_sidebar_mini') === '1') {
+        document.documentElement.classList.add('sidebar-mini');
+      }
+    } catch (e) { /* localStorage diblokir */ }
+  </script>
+  <link rel="stylesheet" href="/css/style.css?v=<%= typeof versiAset !== 'undefined' ? versiAset : '' %>">
+</head>
+<body>
+<%- include('partials/loader') %>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <% const pakaiIdentitasDesa = user.role !== 'superadmin' && desaAktif; %>
+    <% const logoSrc = (pakaiIdentitasDesa && desaAktif.logo_path) || pengaturan.logo_path; %>
+    <% const brandNama = pakaiIdentitasDesa ? desaAktif.nama : pengaturan.nama_aplikasi; %>
+    <a class="brand" href="/">
+      <% if (logoSrc) { %>
+        <img class="brand-logo" src="<%= logoSrc %>" alt="Logo <%= brandNama %>">
+      <% } else { %>
+        <div class="brand-mark"><%= pakaiIdentitasDesa ? brandNama.charAt(0).toUpperCase() : brandInisial %></div>
+      <% } %>
+      <div class="brand-text">
+        <strong><%= brandNama %></strong>
+        <span><%= pengaturan.tagline %></span>
+      </div>
+    </a>
+
+    <% const active = (p) => (p === '/' ? currentPath === '/' : currentPath.startsWith(p)); %>
+    <% const superadmin = user.role === 'superadmin'; %>
+    <% const adminDesa = user.role === 'admin_desa'; %>
+    <% const adminDusun = user.role === 'admin_dusun'; %>
+    <% const warga = user.role === 'warga'; %>
+    <% const petugas = user.role === 'petugas_catat'; %>
+    <% const kasir = user.role === 'kasir'; %>
+
+    <nav class="nav">
+      <% if (warga) { %>
+      <div class="nav-group">Akun Saya</div>
+      <a class="nav-link <%= active('/warga') && currentPath === '/warga' ? 'active' : '' %>" href="/warga">
+        <span class="nav-ico">▦</span> Ringkasan
+      </a>
+      <a class="nav-link <%= active('/warga/tagihan') ? 'active' : '' %>" href="/warga/tagihan">
+        <span class="nav-ico">▣</span> Tagihan Saya
+      </a>
+      <a class="nav-link <%= active('/warga/pemakaian') ? 'active' : '' %>" href="/warga/pemakaian">
+        <span class="nav-ico">◔</span> Pemakaian
+      </a>
+      <a class="nav-link <%= active('/warga/keluhan') ? 'active' : '' %>" href="/warga/keluhan">
+        <span class="nav-ico">✎</span> Keluhan
+      </a>
+      <% } else if (!superadmin) { %>
+      <div class="nav-group">Utama</div>
+      <a class="nav-link <%= active('/') ? 'active' : '' %>" href="/">
+        <span class="nav-ico">▦</span> Dashboard
+      </a>
+
+      <div class="nav-group">Master Data</div>
+      <% if (adminDesa) { %>
+        <a class="nav-link <%= active('/dusun') ? 'active' : '' %>" href="/dusun">
+          <span class="nav-ico">⌂</span> Dusun
+        </a>
+      <% } %>
+      <a class="nav-link <%= active('/sumur') ? 'active' : '' %>" href="/sumur">
+        <span class="nav-ico">◎</span> Sumur Bor
+      </a>
+      <a class="nav-link <%= active('/pelanggan') ? 'active' : '' %>" href="/pelanggan">
+        <span class="nav-ico">◍</span> Pelanggan
+      </a>
+      <a class="nav-link <%= active('/tarif') ? 'active' : '' %>" href="/tarif">
+        <span class="nav-ico">≡</span> Tarif
+      </a>
+
+      <div class="nav-group">Operasional</div>
+      <a class="nav-link <%= active('/pasang') ? 'active' : '' %>" href="/pasang">
+        <span class="nav-ico">✚</span> Pasang Baru
+      </a>
+      <a class="nav-link <%= active('/bahan') ? 'active' : '' %>" href="/bahan">
+        <span class="nav-ico">▧</span> Gudang Bahan
+      </a>
+      <a class="nav-link <%= active('/pembelian') ? 'active' : '' %>" href="/pembelian">
+        <span class="nav-ico">▩</span> Pembelian Bahan
+      </a>
+      <a class="nav-link <%= active('/periode') ? 'active' : '' %>" href="/periode">
+        <span class="nav-ico">▤</span> Periode & Baca Meter
+      </a>
+      <a class="nav-link <%= active('/produksi') ? 'active' : '' %>" href="/produksi">
+        <span class="nav-ico">◔</span> Produksi Air
+      </a>
+      <a class="nav-link <%= active('/keluhan') ? 'active' : '' %>" href="/keluhan">
+        <span class="nav-ico">✎</span> Keluhan
+      </a>
+
+      <div class="nav-group">Keuangan</div>
+      <a class="nav-link <%= active('/tagihan') ? 'active' : '' %>" href="/tagihan">
+        <span class="nav-ico">▣</span> Tagihan
+      </a>
+      <% if (kasir || adminDesa || adminDusun) { %>
+        <a class="nav-link <%= active('/pembayaran-online') ? 'active' : '' %>" href="/pembayaran-online">
+          <span class="nav-ico">💳</span> Pembayaran Online
+        </a>
+      <% } %>
+      <a class="nav-link <%= active('/laporan') ? 'active' : '' %>" href="/laporan">
+        <span class="nav-ico">◫</span> Laporan
+      </a>
+      <% if (adminDesa || adminDusun) { %>
+        <div class="nav-group">Kepegawaian</div>
+        <a class="nav-link <%= active('/karyawan') ? 'active' : '' %>" href="/karyawan">
+          <span class="nav-ico">👷</span> Karyawan
+        </a>
+        <a class="nav-link <%= active('/absensi') ? 'active' : '' %>" href="/absensi">
+          <span class="nav-ico">🗓</span> Absensi
+        </a>
+        <a class="nav-link <%= active('/penggajian') ? 'active' : '' %>" href="/penggajian">
+          <span class="nav-ico">🧾</span> Penggajian
+        </a>
+        <a class="nav-link <%= active('/kasbon') ? 'active' : '' %>" href="/kasbon">
+          <span class="nav-ico">💸</span> Kasbon
+        </a>
+      <% } %>
+      <% } %>
+
+      <% if (superadmin || adminDesa || adminDusun) { %>
+        <div class="nav-group">Sistem</div>
+        <% if (superadmin) { %>
+          <a class="nav-link <%= currentPath === '/superadmin' ? 'active' : '' %>" href="/superadmin">
+            <span class="nav-ico">★</span> Panel Superadmin
+          </a>
+          <a class="nav-link <%= active('/superadmin/pendaftaran') ? 'active' : '' %>" href="/superadmin/pendaftaran">
+            <span class="nav-ico">✉</span> Pendaftaran
+          </a>
+          <a class="nav-link <%= active('/superadmin/paket') ? 'active' : '' %>" href="/superadmin/paket">
+            <span class="nav-ico">▦</span> Paket Langganan
+          </a>
+          <a class="nav-link <%= active('/superadmin/langganan') ? 'active' : '' %>" href="/superadmin/langganan">
+            <span class="nav-ico">▥</span> Langganan Pengelola
+          </a>
+          <a class="nav-link <%= active('/superadmin/pembayaran') ? 'active' : '' %>" href="/superadmin/pembayaran">
+            <span class="nav-ico">💳</span> Pembayaran Online
+          </a>
+          <a class="nav-link <%= active('/pengaturan') ? 'active' : '' %>" href="/pengaturan">
+            <span class="nav-ico">⚙</span> Pengaturan
+          </a>
+          <a class="nav-link <%= active('/superadmin/reset-password') ? 'active' : '' %>" href="/superadmin/reset-password">
+            <span class="nav-ico">🔑</span> Reset Password
+          </a>
+        <% } %>
+        <a class="nav-link <%= active('/pengguna') ? 'active' : '' %>" href="/pengguna">
+          <span class="nav-ico">☺</span> Pengguna
+        </a>
+        <% if (adminDesa || adminDusun) { %>
+          <a class="nav-link <%= active('/langganan') ? 'active' : '' %>" href="/langganan">
+            <span class="nav-ico">▤</span> Langganan
+          </a>
+        <% } %>
+        <% if (adminDesa) { %>
+          <a class="nav-link <%= active('/profil-desa') ? 'active' : '' %>" href="/profil-desa">
+            <span class="nav-ico">⌂</span> Profil Desa
+          </a>
+        <% } %>
+        <% if (superadmin || adminDesa) { %>
+          <a class="nav-link <%= active('/audit') ? 'active' : '' %>" href="/audit">
+            <span class="nav-ico">⌘</span> Audit Log
+          </a>
+        <% } %>
+      <% } %>
+
+      <div class="nav-group">Keamanan Akun</div>
+      <a class="nav-link <%= active('/ganti-password') ? 'active' : '' %>" href="/ganti-password">
+        <span class="nav-ico">🔒</span> Ganti Kata Sandi
+      </a>
+      <% if (superadmin) { %>
+        <a class="nav-link <%= active('/2fa') ? 'active' : '' %>" href="/2fa/pengaturan">
+          <span class="nav-ico">🛡</span> Autentikasi 2FA
+        </a>
+      <% } %>
+    </nav>
+
+    <div class="sidebar-foot">
+      <span class="dot"></span> Mode demo · SQLite
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="menu-btn" id="menuBtn" type="button" aria-label="Buka menu">☰</button>
+      <button class="collapse-btn" id="collapseBtn" type="button" aria-label="Kecilkan menu" title="Kecilkan menu">«</button>
+      <div class="topbar-title"><%= title %></div>
+      <div class="user-chip">
+        <span class="avatar"><%= user.nama.charAt(0).toUpperCase() %></span>
+        <div class="user-meta">
+          <strong><%= user.nama %></strong>
+          <small><%= roleLabel[user.role] %><% if (user.dusun_nama) { %> · <%= user.dusun_nama %><% } %></small>
+        </div>
+        <form action="/logout" method="post">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn-ghost btn-sm" type="submit">Keluar</button>
+        </form>
+      </div>
+    </header>
+
+    <div class="content">
+      <% if (flash) { %>
+        <div class="alert alert-<%= flash.type %>" data-flash>
+          <span><%= flash.message %></span>
+          <button type="button" class="alert-close" aria-label="Tutup">×</button>
+        </div>
+      <% } %>
+      <%- body %>
+    </div>
+
+    <footer class="app-foot">
+      <div class="app-foot-inner">
+        <span>© <%= new Date().getFullYear() %> <%= pengaturan.nama_aplikasi %> · <%= pengaturan.tagline %></span>
+        <span class="app-foot-author">Dikembangkan oleh <strong>Hasnawi Latip</strong></span>
+      </div>
+    </footer>
+  </div>
+</div>
+<div class="backdrop" id="backdrop"></div>
+<script src="/js/app.js?v=<%= typeof versiAset !== 'undefined' ? versiAset : '' %>"></script>
+</body>
+</html>

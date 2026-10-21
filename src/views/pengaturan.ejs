@@ -1,0 +1,65 @@
+<div class="page-head">
+  <div>
+    <h1>Pengaturan</h1>
+    <p class="muted">Atur logo dan branding yang tampil di seluruh aplikasi.</p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-ghost" href="/superadmin">← Panel superadmin</a>
+  </div>
+</div>
+
+<div class="grid-2">
+  <section class="card">
+    <div class="card-head"><h2>Identitas aplikasi</h2></div>
+    <form action="/pengaturan" method="post" enctype="multipart/form-data">
+      <div class="field">
+        <label for="nama_aplikasi">Nama aplikasi</label>
+        <input class="input" id="nama_aplikasi" name="nama_aplikasi" value="<%= setelan.nama_aplikasi %>" maxlength="40" required>
+        <span class="small muted">Tampil di sidebar, judul halaman, halaman masuk, dan kwitansi.</span>
+      </div>
+      <div class="field">
+        <label for="tagline">Tagline</label>
+        <input class="input" id="tagline" name="tagline" value="<%= setelan.tagline %>" maxlength="80">
+        <span class="small muted">Teks kecil di bawah nama aplikasi.</span>
+      </div>
+      <div class="field">
+        <label for="logo">Logo</label>
+        <div class="logo-row">
+          <% if (setelan.logo_path) { %>
+            <img class="logo-preview" src="<%= setelan.logo_path %>" alt="Logo saat ini">
+          <% } else { %>
+            <span class="brand-mark"><%= brandInisial %></span>
+          <% } %>
+          <input class="input" id="logo" type="file" name="logo" accept="image/png,image/jpeg,image/webp">
+        </div>
+        <span class="small muted">PNG, JPG, atau WebP. Maksimal 2 MB. Logo berbentuk persegi tampil paling rapi.</span>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Simpan pengaturan</button>
+      </div>
+    </form>
+    <% if (setelan.logo_path) { %>
+      <form action="/pengaturan/logo/hapus" method="post" style="margin-top:10px;" data-confirm="Hapus logo saat ini?">
+        <button class="btn btn-ghost btn-sm" type="submit">Hapus logo</button>
+      </form>
+    <% } %>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Pratinjau</h2></div>
+    <div class="brand-preview">
+      <div class="brand">
+        <% if (setelan.logo_path) { %>
+          <img class="brand-logo" src="<%= setelan.logo_path %>" alt="Logo <%= setelan.nama_aplikasi %>">
+        <% } else { %>
+          <div class="brand-mark"><%= brandInisial %></div>
+        <% } %>
+        <div class="brand-text">
+          <strong><%= setelan.nama_aplikasi %></strong>
+          <span><%= setelan.tagline %></span>
+        </div>
+      </div>
+    </div>
+    <p class="small muted">Pratinjau mengikuti data yang tersimpan. Setelah disimpan, logo dan nama baru langsung dipakai di seluruh halaman.</p>
+  </section>
+</div>

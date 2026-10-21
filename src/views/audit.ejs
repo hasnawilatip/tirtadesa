@@ -1,0 +1,38 @@
+<div class="page-head">
+  <div>
+    <h1>Audit Log</h1>
+    <p class="muted">200 aktivitas terakhir. Catatan tidak dapat diubah dari aplikasi.</p>
+  </div>
+</div>
+
+<section class="card">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Waktu</th>
+          <th>Pengguna</th>
+          <th>Aksi</th>
+          <th>Entitas</th>
+          <th>Detail</th>
+          <th>IP</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!rows.length) { %>
+          <tr><td colspan="6" class="empty-cell">Belum ada aktivitas.</td></tr>
+        <% } %>
+        <% rows.forEach((r) => { %>
+          <tr>
+            <td class="nowrap"><%= r.created_at %></td>
+            <td><%= r.user_nama || 'Sistem' %></td>
+            <td><span class="badge badge-info"><%= r.aksi %></span></td>
+            <td><%= r.entitas %><%= r.entitas_id ? ` #${r.entitas_id}` : '' %></td>
+            <td class="small"><%= r.detail || '-' %></td>
+            <td class="small muted"><%= r.ip_address || '-' %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>

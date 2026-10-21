@@ -1,0 +1,241 @@
+<% const diPopup = typeof dalamModal !== 'undefined' && dalamModal; %>
+<% if (!diPopup) { %>
+<div class="page-head">
+  <div>
+    <h1><%= row ? `Ubah ${row.nomor}` : 'Catat Pembelian Bahan' %></h1>
+    <p class="muted">
+      Nomor nota <strong><%= nomorOtomatis %></strong> dibuat otomatis. Stok gudang baru bertambah
+      setelah barang <strong>diterima</strong>, dan totalnya tercatat sebagai pengeluaran di laporan.
+    </p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-ghost" href="<%= row ? `/pembelian/${row.id}` : '/pembelian' %>">Kembali</a>
+  </div>
+</div>
+<% } %>
+
+<form action="<%= row ? `/pembelian/${row.id}` : '/pembelian' %>" method="post" id="formPembelian">
+  <section class="card">
+    <div class="card-head"><h2>Data nota</h2></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field">
+          <label>Tanggal pembelian</label>
+          <input class="input" type="date" name="tanggal" value="<%= row ? row.tanggal : today %>" required>
+        </div>
+        <div class="field">
+          <label>Supplier / toko</label>
+          <input class="input" name="supplier" value="<%= row ? (row.supplier || '') : '' %>" placeholder="Mis. Toko Bangunan Sumber Rejeki">
+        </div>
+        <div class="field">
+          <label>Metode pembayaran</label>
+          <select name="metode">
+            <% Object.entries(metodeLabel).forEach(([nilai, teks]) => { %>
+              <option value="<%= nilai %>" <%= row && row.metode === nilai ? 'selected' : '' %>><%= teks %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>Catatan</label>
+          <input class="input" name="catatan" value="<%= row ? (row.catatan || '') : '' %>" placeholder="Mis. nomor nota fisik / termin">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Bahan yang dibeli</h2>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span class="muted small">Harga satuan bisa disesuaikan dengan nota</span>
+        <button class="btn btn-ghost btn-sm" type="button" id="tambahItem">+ Tambah bahan</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="table-wrap">
+        <table class="table table-bahan" id="tabelItem">
+          <thead>
+            <tr>
+              <th>Bahan / material</th>
+              <th class="num">Stok kini</th>
+              <th class="num" style="width:110px;">Jumlah</th>
+              <th class="num" style="width:150px;">Harga satuan</th>
+              <th class="num">Subtotal</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="barisItem"></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="4" class="num"><strong>Total pembelian</strong></td>
+              <td class="num"><strong id="totalPembelian">Rp 0</strong></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="bahan-actions">
+        <button class="btn btn-ghost" type="button" id="tambahItemBawah">＋ Tambah baris bahan</button>
+        <span class="small muted">
+          Pilih bahan lalu isi jumlah &amp; harga dari nota — baris baru otomatis muncul.
+          Bahan belum terdaftar? Tambahkan dulu di <a class="link" href="/bahan">Gudang bahan</a>.
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit" name="aksi" value="terima">Simpan &amp; terima barang</button>
+    <button class="btn btn-ghost" type="submit" name="aksi" value="draf">Simpan draf (belum masuk stok)</button>
+    <% if (diPopup) { %>
+      <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+    <% } else { %>
+      <a class="btn btn-ghost" href="<%= row ? `/pembelian/${row.id}` : '/pembelian' %>">Batal</a>
+    <% } %>
+  </div>
+</form>
+
+<script>
+(function () {
+  const bahan = <%- jsonAman(bahanList.map((b) => ({
+    id: b.id,
+    nama: b.nama,
+    satuan: b.satuan,
+    kode: b.kode,
+    stok: b.stok,
+    harga: b.harga_satuan,
+  }))) %>;
+  const awal = <%- jsonAman(items.map((b) => ({
+    id: b.bahan_id,
+    jumlah: b.jumlah,
+    harga: b.harga_satuan,
+  }))) %>;
+  const tbody = document.getElementById('barisItem');
+  const rupiah = (n) => 'Rp ' + new Intl.NumberFormat('id-ID').format(Math.round(Number(n) || 0));
+  const angka = (n) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(Number(n) || 0);
+
+  function tambahBaris(idTerpilih, jumlah, harga) {
+    const tr = document.createElement('tr');
+
+    const tdPilih = document.createElement('td');
+    const pilih = document.createElement('select');
+    pilih.name = 'bahan_id[]';
+    pilih.className = 'input';
+    const kosong = document.createElement('option');
+    kosong.value = '';
+    kosong.textContent = '— Pilih bahan —';
+    pilih.appendChild(kosong);
+    bahan.forEach((b) => {
+      const opt = document.createElement('option');
+      opt.value = b.id;
+      opt.textContent = `${b.nama} (${b.kode})`;
+      opt.dataset.harga = b.harga;
+      opt.dataset.stok = b.stok;
+      opt.dataset.satuan = b.satuan;
+      if (String(idTerpilih) === String(b.id)) opt.selected = true;
+      pilih.appendChild(opt);
+    });
+    tdPilih.appendChild(pilih);
+
+    const tdStok = document.createElement('td');
+    tdStok.className = 'num small';
+    tdStok.dataset.label = 'Stok kini';
+    tdStok.textContent = '—';
+
+    const tdJumlah = document.createElement('td');
+    tdJumlah.dataset.label = 'Jumlah';
+    const inputJumlah = document.createElement('input');
+    inputJumlah.className = 'input';
+    inputJumlah.type = 'number';
+    inputJumlah.min = '0';
+    inputJumlah.step = '1';
+    inputJumlah.name = 'jumlah[]';
+    inputJumlah.value = jumlah ? jumlah : '';
+    inputJumlah.placeholder = '0';
+    tdJumlah.appendChild(inputJumlah);
+
+    const tdHarga = document.createElement('td');
+    tdHarga.dataset.label = 'Harga satuan';
+    const inputHarga = document.createElement('input');
+    inputHarga.className = 'input';
+    inputHarga.type = 'number';
+    inputHarga.min = '0';
+    inputHarga.step = '100';
+    inputHarga.name = 'harga[]';
+    inputHarga.value = harga ? harga : '';
+    inputHarga.placeholder = '0';
+    tdHarga.appendChild(inputHarga);
+
+    const tdSub = document.createElement('td');
+    tdSub.className = 'num';
+    tdSub.dataset.label = 'Subtotal';
+    tdSub.textContent = 'Rp 0';
+
+    const tdHapus = document.createElement('td');
+    const hapus = document.createElement('button');
+    hapus.type = 'button';
+    hapus.className = 'btn btn-ghost btn-sm';
+    hapus.textContent = '×';
+    hapus.title = 'Hapus baris';
+    hapus.addEventListener('click', function () {
+      tr.remove();
+      hitung();
+      pastikanBarisKosong();
+    });
+    tdHapus.appendChild(hapus);
+
+    tr.append(tdPilih, tdStok, tdJumlah, tdHarga, tdSub, tdHapus);
+    tbody.appendChild(tr);
+
+    function segarkan() {
+      const opt = pilih.options[pilih.selectedIndex];
+      const satuan = opt ? (opt.dataset.satuan || '') : '';
+      tdStok.textContent = opt && opt.value ? `${angka(opt.dataset.stok)} ${satuan}` : '—';
+      if (opt && opt.value && !Number(inputHarga.value)) {
+        inputHarga.value = Number(opt.dataset.harga) || '';
+      }
+      const subtotal = (Number(inputJumlah.value) || 0) * (Number(inputHarga.value) || 0);
+      tdSub.textContent = rupiah(subtotal);
+      hitung();
+      if (opt && opt.value) pastikanBarisKosong();
+    }
+    pilih.addEventListener('change', segarkan);
+    inputJumlah.addEventListener('input', segarkan);
+    inputHarga.addEventListener('input', segarkan);
+    segarkan();
+  }
+
+  function pastikanBarisKosong() {
+    const daftar = tbody.querySelectorAll('tr');
+    const terakhir = daftar[daftar.length - 1];
+    if (!terakhir) {
+      tambahBaris('', 0, 0);
+      return;
+    }
+    const pilih = terakhir.querySelector('select');
+    const opt = pilih && pilih.options[pilih.selectedIndex];
+    if (opt && opt.value) tambahBaris('', 0, 0);
+  }
+
+  function hitung() {
+    let total = 0;
+    tbody.querySelectorAll('tr').forEach((tr) => {
+      const jumlah = Number(tr.querySelector('input[name="jumlah[]"]').value) || 0;
+      const harga = Number(tr.querySelector('input[name="harga[]"]').value) || 0;
+      total += jumlah * harga;
+    });
+    document.getElementById('totalPembelian').textContent = rupiah(total);
+  }
+
+  ['tambahItem', 'tambahItemBawah'].forEach((id) => {
+    const tombol = document.getElementById(id);
+    if (tombol) tombol.addEventListener('click', () => tambahBaris('', 0, 0));
+  });
+
+  if (awal.length) {
+    awal.forEach((b) => tambahBaris(b.id, b.jumlah, b.harga));
+  } else {
+    tambahBaris('', 0, 0);
+  }
+})();
+</script>

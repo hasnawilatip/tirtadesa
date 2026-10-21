@@ -1,0 +1,46 @@
+<div class="page-head">
+  <div>
+    <h1>Pemakaian Air</h1>
+    <p class="muted">
+      <% if (pelanggan) { %>Riwayat pembacaan meter <%= pelanggan.nomor_pelanggan %> · <%= pelanggan.nama %><% } else { %>Akun belum ditautkan ke pelanggan.<% } %>
+    </p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-ghost" href="/warga">← Ringkasan</a>
+  </div>
+</div>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Riwayat meter</h2>
+    <span class="muted small"><%= rows.length %> pembacaan</span>
+  </div>
+  <% if (!rows.length) { %>
+    <div class="empty"><p>Belum ada pembacaan meter.</p></div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Periode</th>
+            <th class="num">Angka lalu</th>
+            <th class="num">Angka kini</th>
+            <th class="num">Pemakaian</th>
+            <th>Tanggal baca</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% rows.forEach((p) => { %>
+            <tr>
+              <td><strong><%= periodeLabel(p.tahun, p.bulan) %></strong></td>
+              <td class="num"><%= angka(p.angka_lalu, 1) %></td>
+              <td class="num"><%= angka(p.angka_kini, 1) %></td>
+              <td class="num"><%= angka(p.pemakaian_m3, 1) %> m³</td>
+              <td class="small"><%= p.tanggal_baca ? tanggal(p.tanggal_baca) : '—' %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>

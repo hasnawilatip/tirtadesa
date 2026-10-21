@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <meta name="theme-color" content="#0b2239">
+  <meta name="description" content="Tinggalkan buku meter dan kalkulator. <%= pengaturan.nama_aplikasi %> merapikan pelanggan, bacaan meter, tagihan, pembayaran, dan produksi air sumur bor dalam satu dashboard.">
+  <title><%= pengaturan.nama_aplikasi %> · Aplikasi Pengelolaan Sumur Bor</title>
+  <link rel="stylesheet" href="/css/style.css?v=<%= typeof versiAset !== 'undefined' ? versiAset : '' %>">
+</head>
+<body class="home-body">
+<%- include('partials/loader') %>
+
+<header class="home-nav">
+  <div class="home-nav-inner">
+    <a class="home-brand" href="/">
+      <% if (pengaturan.logo_path) { %>
+        <img class="brand-logo" src="<%= pengaturan.logo_path %>" alt="Logo <%= pengaturan.nama_aplikasi %>">
+      <% } else { %>
+        <span class="brand-mark"><%= brandInisial %></span>
+      <% } %>
+      <span class="brand-text">
+        <strong><%= pengaturan.nama_aplikasi %></strong>
+        <span><%= pengaturan.tagline %></span>
+      </span>
+    </a>
+    <nav class="home-nav-links" aria-label="Navigasi beranda">
+      <a href="#fitur">Fitur</a>
+      <a href="#untuk-siapa">Untuk siapa</a>
+      <a href="#paket">Harga</a>
+      <a href="#cara-kerja">Cara kerja</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div class="home-nav-actions">
+      <a class="btn btn-ghost btn-sm" href="/login">Masuk</a>
+      <a class="btn btn-primary btn-sm" href="/gabung">Gabung</a>
+    </div>
+  </div>
+</header>
+
+<section class="home-hero">
+  <div class="home-hero-inner">
+    <div class="home-copy">
+      <span class="hero-badge">Untuk Desa, Dusun &amp; Usaha Air</span>
+      <h1>Dari catatan meter ke <span class="hero-accent">pemasukan yang terukur</span>.</h1>
+      <p>Tinggalkan buku meter dan kalkulator. <%= pengaturan.nama_aplikasi %> menyatukan data pelanggan, bacaan meter, tagihan, pembayaran, dan produksi air — lengkap dengan laporan yang siap dicetak kapan pun dibutuhkan.</p>
+      <div class="home-actions">
+        <a class="btn btn-primary" href="/gabung">Mulai Kelola Sekarang</a>
+        <a class="btn btn-outline" href="#cara-kerja">Lihat cara kerja</a>
+      </div>
+      <ul class="home-points">
+        <li>Mulai gratis — tanpa kartu kredit</li>
+        <li>Cukup dari browser HP, tanpa instalasi</li>
+        <li>Satu sumur atau banyak titik, tetap rapi</li>
+      </ul>
+    </div>
+
+    <div class="home-visual" aria-hidden="true">
+      <div class="mock-card">
+        <div class="mock-head">
+          <span class="mock-dot"></span>
+          <span class="mock-dot"></span>
+          <span class="mock-dot"></span>
+          <small>Ilustrasi dashboard</small>
+        </div>
+        <div class="mock-kpi">
+          <strong>Rp 8.750.000</strong>
+          <span>Pendapatan sumur bor bulan ini</span>
+        </div>
+        <div class="mock-bars">
+          <span style="height: 46%"></span>
+          <span style="height: 68%"></span>
+          <span style="height: 54%"></span>
+          <span style="height: 82%"></span>
+          <span style="height: 63%"></span>
+          <span style="height: 96%"></span>
+        </div>
+        <div class="mock-rows">
+          <div class="mock-row"><i></i><span></span><span class="short"></span></div>
+          <div class="mock-row"><i></i><span></span><span class="short"></span></div>
+          <div class="mock-row"><i></i><span></span><span class="short"></span></div>
+        </div>
+      </div>
+      <div class="mock-badge">Tagihan terbit otomatis</div>
+    </div>
+  </div>
+</section>
+
+<section class="home-strip">
+  <div class="home-strip-inner">
+    <span>Perumahan &amp; komplek</span>
+    <span>Dusun &amp; desa</span>
+    <span>Kos &amp; kontrakan</span>
+    <span>Koperasi &amp; UPK air</span>
+    <span>Kawasan usaha</span>
+  </div>
+</section>
+
+<section class="home-section" id="manfaat">
+  <div class="home-section-head">
+    <span class="home-eyebrow">Kenapa <%= pengaturan.nama_aplikasi %></span>
+    <h2>Dari catatan manual ke pengelolaan modern</h2>
+    <p>Semua yang biasanya tersebar di buku, kalkulator, dan chat, kini rapi dalam satu tempat.</p>
+  </div>
+  <div class="home-compare">
+    <article class="compare-col compare-before">
+      <h3>Tanpa aplikasi</h3>
+      <ul>
+        <li>Catatan meter tercecer di buku dan WhatsApp</li>
+        <li>Tagihan dihitung manual, rawan salah</li>
+        <li>Sulit tahu siapa yang menunggak</li>
+        <li>Pemakaian air dan kebocoran tidak terpantau</li>
+        <li>Laporan pemasukan baru dibuat akhir bulan</li>
+      </ul>
+    </article>
+    <article class="compare-col compare-after">
+      <h3>Dengan <%= pengaturan.nama_aplikasi %></h3>
+      <ul>
+        <li>Data pelanggan dan meter tersimpan rapi</li>
+        <li>Tagihan dan denda dihitung otomatis</li>
+        <li>Daftar tunggakan selalu terlihat</li>
+        <li>Produksi tiap sumur dan kehilangan air terukur</li>
+        <li>Laporan pemasukan siap dibagikan kapan saja</li>
+      </ul>
+    </article>
+  </div>
+</section>
+
+<section class="home-section" id="fitur">
+  <div class="home-section-head">
+    <span class="home-eyebrow">Fitur</span>
+    <h2>Semua kebutuhan pengelola sumur bor</h2>
+    <p>Dari pencatatan meter sampai laporan pemasukan, tanpa perlu aplikasi lain.</p>
+  </div>
+  <div class="home-grid">
+    <article class="home-feature">
+      <span class="home-ico">◍</span>
+      <h3>Data pelanggan rapi</h3>
+      <p>Pelanggan dikelompokkan per sumur bor dan wilayah, lengkap dengan nomor meter dan status.</p>
+    </article>
+    <article class="home-feature">
+      <span class="home-ico">✎</span>
+      <h3>Catat meter dari HP</h3>
+      <p>Petugas menginput angka meter beserta foto bukti; pemakaian air langsung terhitung.</p>
+    </article>
+    <article class="home-feature">
+      <span class="home-ico">≡</span>
+      <h3>Tagihan otomatis</h3>
+      <p>Tarif progresif per m³, abonemen, pemakaian minimum, dan denda dihitung tanpa kalkulator.</p>
+    </article>
+    <article class="home-feature">
+      <span class="home-ico">▣</span>
+      <h3>Pembayaran &amp; kwitansi</h3>
+      <p>Catat pembayaran tunai atau transfer, cetak kwitansi bernomor, dan pantau sisa tunggakan.</p>
+    </article>
+    <article class="home-feature">
+      <span class="home-ico">◔</span>
+      <h3>Produksi &amp; kehilangan air</h3>
+      <p>Bandingkan volume air dari meter induk dengan air terjual untuk mendeteksi kebocoran.</p>
+    </article>
+    <article class="home-feature">
+      <span class="home-ico">◫</span>
+      <h3>Laporan pemasukan</h3>
+      <p>Rekap pendapatan per sumur dan wilayah, daftar tunggakan, siap dicetak atau dibagikan.</p>
+    </article>
+  </div>
+</section>
+
+<section class="home-section" id="untuk-siapa">
+  <div class="home-section-head">
+    <span class="home-eyebrow">Untuk siapa</span>
+    <h2>Cocok untuk berbagai pengelola sumur bor</h2>
+    <p>Baik Anda mengelola satu titik atau banyak sumur bor, pencatatan tetap konsisten.</p>
+  </div>
+  <div class="home-grid home-grid-4">
+    <article class="home-feature">
+      <span class="home-ico">⌂</span>
+      <h3>Perumahan &amp; komplek</h3>
+      <p>Kelola pelanggan rumah tangga, tagihan bulanan, dan tunggakan secara transparan.</p>
+    </article>
+    <article class="home-feature">
+      <span class="home-ico">◎</span>
+      <h3>Sumur bor dusun</h3>
+      <p>Catat pemakaian tiap pelanggan dan tunjukkan laporan pemasukan kepada warga.</p>
+    </article>
+    <article class="home-feature">
+      <span class="home-ico">◫</span>
+      <h3>Kos &amp; kontrakan</h3>
+      <p>Pantau pemakaian air tiap kamar atau unit tanpa hitung manual di akhir bulan.</p>
+    </article>
+    <article class="home-feature">
+      <span class="home-ico">≡</span>
+      <h3>Koperasi &amp; UPK air</h3>
+      <p>Kelola banyak sumur dalam satu akun, lengkap dengan rekap keuangan per wilayah.</p>
+    </article>
+  </div>
+</section>
+
+<section class="home-section" id="paket">
+  <div class="home-section-head">
+    <span class="home-eyebrow">Paket langganan</span>
+    <h2>Harga jelas, sesuai jumlah pelanggan &amp; sumur</h2>
+    <p>Bayar per bulan, bisa naik paket kapan saja saat layanan Anda berkembang.</p>
+  </div>
+
+  <% if (!paketList || !paketList.length) { %>
+    <div class="home-paket-kosong">
+      <p>Hubungi kami untuk informasi harga paket langganan.</p>
+      <a class="btn btn-primary" href="/gabung">Gabung jadi pengelola</a>
+    </div>
+  <% } else { %>
+    <div class="home-paket-grid">
+      <% paketList.forEach((p, i) => { %>
+        <article class="home-paket <%= i === 1 ? 'is-unggulan' : '' %>">
+          <% if (i === 1) { %><span class="home-paket-badge">Paling populer</span><% } %>
+          <h3><%= p.nama %></h3>
+          <p class="home-paket-desk"><%= p.deskripsi || 'Paket langganan pengelola sumur bor.' %></p>
+          <div class="home-paket-harga">
+            <% if (Number(p.harga) > 0) { %>
+              <strong><%= rupiah(p.harga) %></strong><span>/bulan</span>
+            <% } else { %>
+              <strong>Gratis</strong><span>tanpa biaya bulanan</span>
+            <% } %>
+          </div>
+          <ul class="home-paket-fitur">
+            <li><b><%= p.maks_pelanggan ? angka(p.maks_pelanggan) : 'Tanpa batas' %></b> pelanggan</li>
+            <li><b><%= p.maks_sumur ? angka(p.maks_sumur) : 'Tanpa batas' %></b> sumur bor</li>
+            <li><b><%= p.maks_dusun ? angka(p.maks_dusun) : 'Tanpa batas' %></b> dusun/wilayah</li>
+            <li>Pencatatan meter, tagihan &amp; kwitansi</li>
+            <li>Portal pelanggan &amp; laporan keuangan</li>
+          </ul>
+          <a class="btn <%= i === 1 ? 'btn-primary' : 'btn-ghost' %> btn-block" href="/gabung?paket=<%= p.id %>">
+            Pilih paket <%= p.nama %>
+          </a>
+        </article>
+      <% }) %>
+    </div>
+    <p class="home-paket-catatan">
+      Semua paket termasuk gudang bahan, pendaftaran pasang baru, keluhan pelanggan, dan pembayaran online.
+      Butuh kapasitas khusus? <a href="/gabung">Hubungi kami</a>.
+    </p>
+  <% } %>
+</section>
+
+<section class="home-section" id="cara-kerja">
+  <div class="home-section-head">
+    <span class="home-eyebrow">Cara kerja</span>
+    <h2>Gabung, catat, tagih — selesai</h2>
+    <p>Tidak perlu mengubah cara kerja di lapangan. Yang berubah hanya pencatatannya.</p>
+  </div>
+  <div class="home-steps">
+    <article class="home-step">
+      <span class="home-step-num">1</span>
+      <h3>Gabung &amp; daftarkan sumur bor</h3>
+      <p>Isi formulir singkat. Tim kami membantu menyiapkan akun dan data awal Anda.</p>
+    </article>
+    <article class="home-step">
+      <span class="home-step-num">2</span>
+      <h3>Catat meter dari HP</h3>
+      <p>Masukkan angka meter tiap bulan; pemakaian dan tagihan langsung terhitung otomatis.</p>
+    </article>
+    <article class="home-step">
+      <span class="home-step-num">3</span>
+      <h3>Tagih dan pantau pemasukan</h3>
+      <p>Catat pembayaran, cetak kwitansi, dan lihat laporan pemasukan kapan pun dibutuhkan.</p>
+    </article>
+  </div>
+</section>
+
+<section class="home-section" id="faq">
+  <div class="home-section-head">
+    <span class="home-eyebrow">FAQ</span>
+    <h2>Pertanyaan yang sering diajukan</h2>
+  </div>
+  <div class="home-faq">
+    <details>
+      <summary>Apakah saya harus punya banyak pelanggan dulu?</summary>
+      <p>Tidak. Anda bisa mulai dari beberapa pelanggan, lalu menambahkannya kapan saja saat layanan berkembang.</p>
+    </details>
+    <details>
+      <summary>Berapa biaya untuk bergabung?</summary>
+      <p>Pendaftaran gratis. Setelah akun aktif, Anda memilih paket bulanan sesuai jumlah pelanggan dan
+        sumur bor — daftar harga lengkap ada di <a href="#paket">bagian paket langganan</a>.</p>
+    </details>
+    <details>
+      <summary>Bisa mengelola lebih dari satu sumur bor?</summary>
+      <p>Bisa. Setiap sumur bor punya data pelanggan, pencatatan meter, dan produksi air sendiri dalam satu akun.</p>
+    </details>
+    <details>
+      <summary>Apakah pelanggan bisa melihat tagihannya?</summary>
+      <p>Aplikasi ini dirancang untuk pengelola. Tagihan dan kwitansi dapat dicetak atau dibagikan ke pelanggan sesuai kebutuhan Anda.</p>
+    </details>
+    <details>
+      <summary>Bagaimana keamanan data pelanggan saya?</summary>
+      <p>Data tersimpan di server aplikasi dan akses dibatasi berdasarkan peran pengguna, sehingga petugas hanya melihat data yang menjadi tugasnya.</p>
+    </details>
+  </div>
+</section>
+
+<section class="home-cta">
+  <div class="home-cta-inner">
+    <div>
+      <h2>Siap membuat pengelolaan sumur bor lebih profesional?</h2>
+      <p>Daftarkan diri Anda hari ini. Tim kami akan menghubungi lewat WhatsApp untuk membantu penyiapan awal — tanpa biaya pendaftaran.</p>
+    </div>
+    <a class="btn btn-primary btn-lg" href="/gabung">Gabung Sekarang</a>
+  </div>
+</section>
+
+<footer class="home-foot">
+  <div class="home-foot-inner">
+    <span>© <%= new Date().getFullYear() %> <%= pengaturan.nama_aplikasi %> · <%= pengaturan.tagline %> · Dikembangkan oleh <strong>Hasnawi Latip</strong></span>
+    <span class="home-foot-links">
+      <a href="#fitur">Fitur</a>
+      <a href="#paket">Harga</a>
+      <a href="/gabung">Gabung</a>
+      <a href="/login">Masuk</a>
+    </span>
+  </div>
+</footer>
+
+<script src="/js/app.js?v=<%= typeof versiAset !== 'undefined' ? versiAset : '' %>"></script>
+</body>
+</html>

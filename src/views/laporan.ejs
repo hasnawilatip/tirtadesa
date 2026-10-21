@@ -1,0 +1,220 @@
+<div class="page-head">
+  <div>
+    <h1>Laporan</h1>
+    <p class="muted">Rekap per dusun, tunggakan, neraca air, dan kas.</p>
+  </div>
+  <div class="page-actions no-print">
+    <% if (periode) { %>
+      <a class="btn btn-ghost" href="/laporan/export.csv?jenis=rekap&periode=<%= periode.id %>">Ekspor rekap (CSV)</a>
+      <a class="btn btn-ghost" href="/laporan/export.csv?jenis=tunggakan&periode=<%= periode.id %>">Ekspor tunggakan (CSV)</a>
+    <% } %>
+  </div>
+</div>
+
+<section class="card no-print">
+  <form action="/laporan" method="get" class="filters">
+    <div class="field">
+      <label>Periode</label>
+      <select name="periode">
+        <% periodeList.forEach((p) => { %>
+          <option value="<%= p.id %>" <%= periode && periode.id === p.id ? 'selected' : '' %>><%= periodeLabel(p.tahun, p.bulan) %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="field"><button class="btn btn-primary" type="submit">Tampilkan</button></div>
+  </form>
+</section>
+
+<div data-hasil="laporan">
+<% if (!periode) { %>
+  <section class="card"><div class="empty"><p>Belum ada periode tagihan.</p></div></section>
+<% } else { %>
+  <section class="card">
+    <div class="card-head">
+      <h2>Ringkasan <%= periodeLabel(periode.tahun, periode.bulan) %></h2>
+      <span class="badge <%= statusKelas(periode.status) %>"><%= statusLabel[periode.status] %></span>
+    </div>
+    <div class="report-grid">
+      <div class="report-box"><span>Tagihan</span><strong><%= angka(totals.jumlah) %></strong></div>
+      <div class="report-box"><span>Total tagihan</span><strong><%= rupiah(totals.total) %></strong></div>
+      <div class="report-box"><span>Terbayar</span><strong class="text-success"><%= rupiah(totals.terbayar) %></strong></div>
+      <div class="report-box"><span>Sisa</span><strong class="text-danger"><%= rupiah(totals.sisa) %></strong></div>
+      <div class="report-box"><span>Kas diterima bulan ini</span><strong><%= rupiah(totalKas) %></strong></div>
+      <div class="report-box"><span>NRW</span><strong><%= angka(totalNrw, 1) %>%</strong></div>
+    </div>
+    <p class="muted small">NRW dihitung dari produksi <%= angka(totalProduksi, 1) %> m³ dan pemakaian terjual <%= angka(totalTerjual, 1) %> m³ pada bulan yang sama.</p>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Rekap per dusun</h2></div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Dusun</th><th class="num">Tagihan</th><th class="num">Pemakaian</th><th class="num">Total</th><th class="num">Terbayar</th><th class="num">Sisa</th></tr></thead>
+        <tbody>
+          <% rekapDusun.forEach((r) => { %>
+            <tr>
+              <td><strong><%= r.nama %></strong></td>
+              <td class="num"><%= angka(r.jumlah) %></td>
+              <td class="num"><%= angka(r.m3, 1) %> m³</td>
+              <td class="num"><%= rupiah(r.total) %></td>
+              <td class="num text-success"><%= rupiah(r.terbayar) %></td>
+              <td class="num text-danger"><%= rupiah(r.sisa) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>Total</td>
+            <td class="num"><%= angka(totals.jumlah) %></td>
+            <td class="num"><%= angka(totals.m3, 1) %> m³</td>
+            <td class="num"><%= rupiah(totals.total) %></td>
+            <td class="num"><%= rupiah(totals.terbayar) %></td>
+            <td class="num"><%= rupiah(totals.sisa) %></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Tunggakan &amp; umur tunggakan</h2></div>
+    <div class="report-grid">
+      <div class="report-box"><span>Belum jatuh tempo</span><strong><%= rupiah(aging.belum) %></strong></div>
+      <div class="report-box"><span>0–3 bulan</span><strong><%= rupiah(aging['0_3']) %></strong></div>
+      <div class="report-box"><span>4–6 bulan</span><strong><%= rupiah(aging['4_6']) %></strong></div>
+      <div class="report-box"><span>&gt; 6 bulan</span><strong><%= rupiah(aging.lebih_6) %></strong></div>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Pelanggan</th><th>Dusun</th><th>Periode</th><th>Jatuh tempo</th><th class="num">Umur</th><th class="num">Sisa</th></tr></thead>
+        <tbody>
+          <% if (!tunggakan.length) { %><tr><td colspan="6" class="empty-cell">Tidak ada tunggakan.</td></tr><% } %>
+          <% tunggakan.forEach((t) => { %>
+            <tr>
+              <td><a class="link" href="/tagihan/<%= t.id %>"><%= t.nama %></a><div class="small muted"><%= t.nomor_pelanggan %></div></td>
+              <td><%= t.dusun %></td>
+              <td><%= periodeLabel(t.tahun, t.bulan) %></td>
+              <td><%= tanggal(t.jatuh_tempo) %></td>
+              <td class="num"><%= t.hari %> hari</td>
+              <td class="num text-danger"><%= rupiah(t.sisa) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="grid-2">
+    <section class="card">
+      <div class="card-head"><h2>Neraca air per sumur</h2></div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Sumur</th><th class="num">Produksi</th><th class="num">Terjual</th><th class="num">NRW</th></tr></thead>
+          <tbody>
+            <% if (!nrw.length) { %><tr><td colspan="4" class="empty-cell">Belum ada data.</td></tr><% } %>
+            <% nrw.forEach((r) => { %>
+              <tr>
+                <td><strong><%= r.kode %></strong><div class="small muted"><%= r.dusun %></div></td>
+                <td class="num"><%= angka(r.produksi, 1) %> m³</td>
+                <td class="num"><%= angka(r.terjual, 1) %> m³</td>
+                <td class="num"><span class="badge <%= r.nrw > 25 ? 'badge-danger' : r.nrw > 15 ? 'badge-warning' : 'badge-success' %>"><%= angka(r.nrw, 1) %>%</span></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>Kas bulan ini</h2></div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Metode</th><th class="num">Transaksi</th><th class="num">Jumlah</th></tr></thead>
+          <tbody>
+            <% if (!kasMetode.length) { %><tr><td colspan="3" class="empty-cell">Belum ada pembayaran.</td></tr><% } %>
+            <% kasMetode.forEach((k) => { %>
+              <tr>
+                <td><%= k.metode %></td>
+                <td class="num"><%= angka(k.n) %></td>
+                <td class="num"><%= rupiah(k.total) %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+          <tfoot><tr><td>Total</td><td class="num"><%= angka(kasKasir.reduce((a, k) => a + k.n, 0)) %></td><td class="num"><%= rupiah(totalKas) %></td></tr></tfoot>
+        </table>
+      </div>
+      <div class="table-wrap" style="margin-top:12px;">
+        <table class="table">
+          <thead><tr><th>Kasir</th><th class="num">Transaksi</th><th class="num">Jumlah</th></tr></thead>
+          <tbody>
+            <% kasKasir.forEach((k) => { %>
+              <tr><td><%= k.kasir %></td><td class="num"><%= angka(k.n) %></td><td class="num"><%= rupiah(k.total) %></td></tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Pengeluaran bahan <%= periodeLabel(periode.tahun, periode.bulan) %></h2>
+        <a class="link small" href="/pembelian">Semua pembelian</a>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Nota</th><th>Tanggal</th><th>Supplier</th><th class="num">Total</th></tr></thead>
+          <tbody>
+            <% if (!pembelianBulan.length) { %><tr><td colspan="4" class="empty-cell">Belum ada pembelian bahan diterima bulan ini.</td></tr><% } %>
+            <% pembelianBulan.forEach((p) => { %>
+              <tr>
+                <td><a class="link" href="/pembelian/<%= p.id %>"><%= p.nomor %></a></td>
+                <td class="small"><%= tanggal(p.tanggal) %></td>
+                <td class="small"><%= p.supplier || '—' %></td>
+                <td class="num"><%= rupiah(p.total) %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+          <tfoot>
+            <tr><td colspan="3">Total pengeluaran bahan</td><td class="num"><strong><%= rupiah(totalPembelian) %></strong></td></tr>
+            <tr><td colspan="3">Sisa kas setelah pembelian bahan</td><td class="num"><strong class="<%= totalKas - totalPembelian >= 0 ? 'text-success' : 'text-danger' %>"><%= rupiah(totalKas - totalPembelian) %></strong></td></tr>
+          </tfoot>
+        </table>
+      </div>
+      <p class="small muted">Kas penerimaan bulan ini <%= rupiah(totalKas) %> dikurangi pembelian bahan yang sudah diterima.</p>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Gaji karyawan <%= periodeLabel(periode.tahun, periode.bulan) %></h2>
+        <a class="link small" href="/penggajian?bulan=<%= periode.tahun %>-<%= String(periode.bulan).padStart(2, '0') %>">Semua slip</a>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Slip</th><th>Karyawan</th><th>Tanggal bayar</th><th class="num">Gaji bersih</th></tr></thead>
+          <tbody>
+            <% if (!gajiBulan || !gajiBulan.length) { %>
+              <tr><td colspan="4" class="empty-cell">Belum ada gaji dibayar pada periode ini.</td></tr>
+            <% } %>
+            <% (gajiBulan || []).forEach((g) => { %>
+              <tr>
+                <td><a class="link" href="/penggajian/<%= g.id %>/cetak"><%= g.nomor %></a></td>
+                <td class="small"><%= g.nama %></td>
+                <td class="small"><%= tanggal(g.tanggal_bayar) %></td>
+                <td class="num"><%= rupiah(g.gaji_bersih) %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+          <tfoot>
+            <tr><td colspan="3">Total gaji dibayar</td><td class="num"><strong><%= rupiah(totalGaji || 0) %></strong></td></tr>
+            <tr>
+              <td colspan="3">Sisa kas setelah pembelian &amp; gaji</td>
+              <td class="num"><strong class="<%= totalKas - totalPembelian - (totalGaji || 0) >= 0 ? 'text-success' : 'text-danger' %>"><%= rupiah(totalKas - totalPembelian - (totalGaji || 0)) %></strong></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <p class="small muted">Hanya slip berstatus <strong>dibayar</strong> pada periode ini yang dihitung sebagai pengeluaran.</p>
+    </section>
+  </div>
+<% } %>
+</div>

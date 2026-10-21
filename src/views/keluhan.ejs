@@ -1,0 +1,140 @@
+<%
+  const kategoriLabel = {
+    kebocoran: 'Kebocoran', air_mati: 'Air mati', kualitas_air: 'Kualitas air',
+    meter: 'Meter', tagihan: 'Tagihan', lain: 'Lain-lain'
+  };
+%>
+<div class="page-head">
+  <div>
+    <h1>Keluhan Pelanggan</h1>
+    <p class="muted">Catat dan tindak lanjuti keluhan per dusun.</p>
+  </div>
+  <div class="page-actions">
+    <button class="btn btn-primary" type="button" data-modal-open="modalKeluhan">Catat keluhan</button>
+  </div>
+</div>
+
+<dialog class="modal" id="modalKeluhan">
+  <div class="modal-head">
+    <h2>Catat keluhan</h2>
+    <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+  </div>
+  <div class="modal-body">
+    <form action="/keluhan" method="post">
+      <div class="form-grid">
+        <% if (semua) { %>
+          <div class="field span-2">
+            <label>Dusun</label>
+            <select name="dusun_id" required>
+              <% dusunList.forEach((d) => { %>
+                <option value="<%= d.id %>"><%= d.nama %></option>
+              <% }) %>
+            </select>
+          </div>
+        <% } %>
+        <div class="field">
+          <label>Pelanggan (opsional)</label>
+          <select name="pelanggan_id">
+            <option value="">— Umum —</option>
+            <% pelangganList.forEach((p) => { %>
+              <option value="<%= p.id %>"><%= p.nomor_pelanggan %> · <%= p.nama %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>Sumur terkait (opsional)</label>
+          <select name="sumur_id">
+            <option value="">— Tidak spesifik —</option>
+            <% sumurList.forEach((s) => { %>
+              <option value="<%= s.id %>"><%= s.kode %> · <%= s.nama %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>Kategori</label>
+          <select name="kategori">
+            <% Object.entries(kategoriLabel).forEach(([k, v]) => { %>
+              <option value="<%= k %>"><%= v %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>Prioritas</label>
+          <select name="prioritas">
+            <option value="rendah">Rendah</option>
+            <option value="sedang" selected>Sedang</option>
+            <option value="tinggi">Tinggi</option>
+          </select>
+        </div>
+        <div class="field"><label>Dilaporkan oleh</label><input class="input" name="dilaporkan_oleh" placeholder="Nama warga"></div>
+        <div class="field"><label>Telepon</label><input class="input" name="telepon" placeholder="08xxxxxxxxxx"></div>
+        <div class="field span-2"><label>Deskripsi</label><textarea name="deskripsi" required placeholder="Jelaskan keluhan..."></textarea></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Simpan keluhan</button>
+        <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<section class="card">
+  <div class="card-head"><h2>Filter</h2></div>
+    <form action="/keluhan" method="get" class="filters" style="grid-template-columns:1fr;">
+      <div class="field"><label>Cari</label><input class="input" name="q" value="<%= filters.q %>" placeholder="Deskripsi / nama"></div>
+      <div class="field">
+        <label>Status</label>
+        <select name="status">
+          <option value="">Semua</option>
+          <% ['baru','diproses','selesai','ditutup'].forEach((s) => { %>
+            <option value="<%= s %>" <%= filters.status === s ? 'selected' : '' %>><%= statusLabel[s] %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="field"><button class="btn btn-primary" type="submit">Terapkan</button></div>
+    </form>
+  </section>
+
+<section class="card" data-hasil="daftar">
+  <div class="card-head"><h2>Daftar keluhan</h2><span class="muted small"><%= rows.length %> tiket</span></div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>Tanggal</th><th>Dusun</th><th>Pelanggan / Pelapor</th><th>Kategori</th><th>Keluhan</th><th>Status</th><th>Tindak lanjut</th></tr>
+      </thead>
+      <tbody>
+        <% if (!rows.length) { %><tr><td colspan="7" class="empty-cell">Tidak ada keluhan.</td></tr><% } %>
+        <% rows.forEach((k) => { %>
+          <tr>
+            <td class="nowrap small"><%= k.tanggal_lapor %></td>
+            <td><%= k.dusun %></td>
+            <td>
+              <%= k.pelanggan_nama || k.dilaporkan_oleh || '-' %>
+              <div class="small muted"><%= k.nomor_pelanggan || k.telepon || '' %></div>
+            </td>
+            <td><span class="badge badge-info"><%= kategoriLabel[k.kategori] || k.kategori %></span></td>
+            <td style="max-width:280px;">
+              <%= k.deskripsi %>
+              <div class="small muted"><%= k.sumur || 'Umum' %> · <%= k.petugas || 'Belum ditangani' %></div>
+            </td>
+            <td><span class="badge <%= statusKelas(k.status) %>"><%= statusLabel[k.status] %></span></td>
+            <td>
+              <details>
+                <summary class="link" style="cursor:pointer;font-size:.8rem;">Ubah</summary>
+                <form action="/keluhan/<%= k.id %>/status" method="post" class="btn-row" style="margin-top:6px;">
+                  <select name="status" style="width:130px;">
+                    <% ['baru','diproses','selesai','ditutup'].forEach((s) => { %>
+                      <option value="<%= s %>" <%= k.status === s ? 'selected' : '' %>><%= statusLabel[s] %></option>
+                    <% }) %>
+                  </select>
+                  <input class="input" name="tindak_lanjut" value="<%= k.tindak_lanjut || '' %>" placeholder="Tindak lanjut" style="width:170px;">
+                  <button class="btn btn-primary btn-sm" type="submit">Simpan</button>
+                </form>
+              </details>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>

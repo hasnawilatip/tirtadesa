@@ -1,0 +1,243 @@
+<div class="page-head">
+  <div>
+    <h1>Tagihan</h1>
+    <p class="muted">Tagihan bulanan seluruh dusun sesuai hak akses Anda.</p>
+  </div>
+</div>
+
+<section class="card">
+  <div class="report-grid" data-hasil="ringkas">
+    <div class="report-box"><span>Jumlah tagihan</span><strong><%= angka(ringkas.jumlah) %></strong></div>
+    <div class="report-box"><span>Total tagihan</span><strong><%= rupiah(ringkas.total) %></strong></div>
+    <div class="report-box"><span>Terbayar</span><strong class="text-success"><%= rupiah(ringkas.terbayar) %></strong></div>
+    <div class="report-box"><span>Sisa</span><strong class="text-danger"><%= rupiah(ringkas.sisa) %></strong></div>
+  </div>
+
+  <form action="/tagihan" method="get" class="filters">
+    <div class="field combo filter-cari" style="position:relative;">
+      <label>Cari pelanggan — nomor meter / nama / nomor pelanggan</label>
+      <input class="input" name="q" id="cariPelangganTagihan" autocomplete="off"
+        value="<%= pelangganTerpilih ? (pelangganTerpilih.nomor_meter || pelangganTerpilih.nomor_pelanggan) : filters.q %>"
+        placeholder="Ketik nomor meter, mis. MTR-000001">
+      <input type="hidden" name="pelanggan" id="pelangganTagihan" value="<%= filters.pelanggan || '' %>">
+      <ul class="combo-list" id="hasilCariPelanggan" hidden></ul>
+    </div>
+    <div class="field">
+      <label>Periode</label>
+      <select name="periode">
+        <option value="">Semua periode</option>
+        <% periodeList.forEach((p) => { %>
+          <option value="<%= p.id %>" <%= filters.periode === p.id ? 'selected' : '' %>><%= periodeLabel(p.tahun, p.bulan) %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="field">
+      <label>Status</label>
+      <select name="status">
+        <option value="">Semua</option>
+        <option value="belum_bayar" <%= filters.status === 'belum_bayar' ? 'selected' : '' %>>Belum bayar</option>
+        <option value="sebagian" <%= filters.status === 'sebagian' ? 'selected' : '' %>>Sebagian</option>
+        <option value="lunas" <%= filters.status === 'lunas' ? 'selected' : '' %>>Lunas</option>
+        <option value="tunggakan" <%= filters.status === 'tunggakan' ? 'selected' : '' %>>Tunggakan / belum lunas</option>
+        <option value="batal" <%= filters.status === 'batal' ? 'selected' : '' %>>Batal</option>
+      </select>
+    </div>
+    <% if (dusunList.length > 1) { %>
+      <div class="field">
+        <label>Dusun</label>
+        <select name="dusun">
+          <option value="">Semua</option>
+          <% dusunList.forEach((d) => { %>
+            <option value="<%= d.id %>" <%= filters.dusun === d.id ? 'selected' : '' %>><%= d.nama %></option>
+          <% }) %>
+        </select>
+      </div>
+    <% } %>
+    <div class="field"><button class="btn btn-primary" type="submit">Filter</button></div>
+    <div class="field"><a class="btn btn-ghost" href="/tagihan">Reset</a></div>
+  </form>
+
+  <div data-hasil="daftar">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th class="col-periode">Periode</th>
+          <th class="col-nomor">Nomor</th>
+          <th>Pelanggan</th>
+          <th class="col-dusun">Dusun</th>
+          <th class="num col-pakai">Pakai</th>
+          <th class="num col-total">Total</th>
+          <th class="num col-sisa">Sisa</th>
+          <th class="col-status">Status</th>
+          <th class="col-aksi">Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!rows.length) { %><tr><td colspan="9" class="empty-cell">Tidak ada tagihan pada filter ini.</td></tr><% } %>
+        <% rows.forEach((t) => { %>
+          <tr>
+            <td class="nowrap col-periode"><%= periodeLabel(t.tahun, t.bulan) %></td>
+            <td class="small col-nomor"><a class="link" href="/tagihan/<%= t.id %>"><%= t.nomor_tagihan %></a></td>
+            <td>
+              <a class="link" href="/pelanggan/<%= t.pelanggan_id %>"><%= t.nama %></a>
+              <div class="small muted"><%= t.nomor_pelanggan %></div>
+            </td>
+            <td class="col-dusun"><%= t.dusun %></td>
+            <td class="num col-pakai"><%= angka(t.pemakaian_m3, 1) %> m³</td>
+            <td class="num col-total"><%= rupiah(t.total) %></td>
+            <td class="num col-sisa"><%= rupiah(t.total - t.terbayar) %></td>
+            <td class="col-status"><span class="badge <%= statusKelas(t.status) %>"><%= statusLabel[t.status] %></span></td>
+            <td class="num nowrap col-aksi">
+              <% if (t.status === 'lunas') { %>
+                <a class="btn btn-ghost btn-sm" href="/tagihan/<%= t.id %>/cetak" target="_blank" rel="noopener">Cetak</a>
+              <% } else if (t.status === 'batal') { %>
+                <span class="small muted">—</span>
+              <% } else if (bolehBayar) { %>
+                <button class="btn btn-primary btn-sm" type="button" data-modal-open="modalBayar<%= t.id %>">Bayar</button>
+              <% } else { %>
+                <a class="btn btn-ghost btn-sm" href="/tagihan/<%= t.id %>">Detail</a>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+
+  <% if (bolehBayar) { %>
+    <% rows.filter((t) => t.status !== 'lunas' && t.status !== 'batal').forEach((t) => { %>
+      <dialog class="modal modal-sm" id="modalBayar<%= t.id %>">
+        <div class="modal-head">
+          <div>
+            <h2>Catat pembayaran</h2>
+            <span class="muted"><%= t.nomor_tagihan %> · <%= t.nama %></span>
+          </div>
+          <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="money-row" style="margin-bottom:10px;">
+            <div><span class="muted small">Total</span><strong><%= rupiah(t.total) %></strong></div>
+            <div><span class="muted small">Sisa</span><strong class="text-danger"><%= rupiah(t.total - t.terbayar) %></strong></div>
+          </div>
+          <form action="/tagihan/<%= t.id %>/bayar" method="post">
+            <div class="form-grid">
+              <div class="field">
+                <label>Jumlah bayar</label>
+                <input class="input" type="number" step="0.01" name="jumlah" min="0.01"
+                  value="<%= Math.round((t.total - t.terbayar) * 100) / 100 %>" required>
+              </div>
+              <div class="field">
+                <label>Metode</label>
+                <select name="metode">
+                  <option value="tunai">Tunai</option>
+                  <option value="transfer">Transfer</option>
+                  <option value="qris">QRIS</option>
+                  <option value="lain">Lain-lain</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Tanggal bayar</label>
+                <input class="input" type="date" name="tanggal_bayar" value="<%= today %>" required>
+              </div>
+              <div class="field">
+                <label>Catatan</label>
+                <input class="input" name="catatan" placeholder="Opsional">
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-primary" type="submit">Simpan &amp; cetak kwitansi</button>
+              <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+            </div>
+          </form>
+        </div>
+      </dialog>
+    <% }) %>
+  <% } %>
+
+  <% if (totalPages > 1) { %>
+    <%
+      const buatQuery = (hal) => {
+        const qs = new URLSearchParams();
+        if (filters.q) qs.set('q', filters.q);
+        if (filters.pelanggan) qs.set('pelanggan', filters.pelanggan);
+        if (filters.periode) qs.set('periode', filters.periode);
+        if (filters.status) qs.set('status', filters.status);
+        if (filters.dusun) qs.set('dusun', filters.dusun);
+        qs.set('page', hal);
+        return `/tagihan?${qs.toString()}`;
+      };
+    %>
+    <div class="btn-row">
+      <% if (page > 1) { %><a class="btn btn-ghost btn-sm" href="<%= buatQuery(page - 1) %>">← Sebelumnya</a><% } %>
+      <span class="small muted">Halaman <%= page %> dari <%= totalPages %></span>
+      <% if (page < totalPages) { %><a class="btn btn-ghost btn-sm" href="<%= buatQuery(page + 1) %>">Berikutnya →</a><% } %>
+    </div>
+  <% } %>
+  </div>
+</section>
+
+<script>
+  (() => {
+    const form = document.querySelector('form.filters');
+    const input = document.getElementById('cariPelangganTagihan');
+    const hidden = document.getElementById('pelangganTagihan');
+    const daftar = document.getElementById('hasilCariPelanggan');
+    if (!form || !input || !hidden || !daftar) return;
+
+    let timer = null;
+    const tutup = () => { daftar.hidden = true; daftar.textContent = ''; };
+
+    const pilih = (item) => {
+      hidden.value = item.id;
+      input.value = item.nomor_meter || item.nomor_pelanggan;
+      tutup();
+      const tombol = form.querySelector('button[type="submit"]');
+      if (tombol) tombol.click();
+    };
+
+    const tampilkan = (data) => {
+      daftar.textContent = '';
+      if (!data.length) {
+        const kosong = document.createElement('li');
+        kosong.className = 'combo-empty';
+        kosong.textContent = 'Pelanggan tidak ditemukan.';
+        daftar.appendChild(kosong);
+        daftar.hidden = false;
+        return;
+      }
+      data.forEach((item) => {
+        const li = document.createElement('li');
+        li.className = 'combo-item';
+        const meter = document.createElement('strong');
+        meter.textContent = item.nomor_meter || 'Tanpa meter';
+        const sisa = document.createElement('span');
+        sisa.className = 'small muted';
+        sisa.textContent = ` · ${item.nama} · ${item.nomor_pelanggan} · ${item.dusun}`
+          + (item.nomor_seri ? ` · SN ${item.nomor_seri}` : '');
+        li.append(meter, sisa);
+        li.addEventListener('click', () => pilih(item));
+        daftar.appendChild(li);
+      });
+      daftar.hidden = false;
+    };
+
+    input.addEventListener('input', () => {
+      hidden.value = '';
+      const q = input.value.trim();
+      clearTimeout(timer);
+      if (q.length < 2) { tutup(); return; }
+      timer = setTimeout(async () => {
+        try {
+          const res = await fetch(`/tagihan/cari?q=${encodeURIComponent(q)}`);
+          const json = await res.json();
+          tampilkan(json.data || []);
+        } catch (err) { tutup(); }
+      }, 250);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (e.target !== input && !daftar.contains(e.target)) tutup();
+    });
+  })();
+</script>

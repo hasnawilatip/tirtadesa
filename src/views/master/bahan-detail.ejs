@@ -1,0 +1,89 @@
+<div class="page-head">
+  <div>
+    <h1><%= row.nama %></h1>
+    <p class="muted">
+      Kode <strong><%= row.kode %></strong> · <%= kategoriLabel[row.kategori] || row.kategori %>
+      · <span class="badge <%= statusKelas(row.kondisi) %>"><%= statusLabel[row.kondisi] %></span>
+      <% if (!row.is_active) { %><span class="badge badge-muted">Nonaktif</span><% } %>
+    </p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-ghost" href="/bahan">Kembali ke gudang</a>
+  </div>
+</div>
+
+<section class="card">
+  <div class="card-head"><h2>Ringkasan stok</h2></div>
+  <div class="reading-meta">
+    <div class="meta-box"><span>Stok saat ini</span><strong><%= angka(row.stok) %> <%= row.satuan %></strong></div>
+    <div class="meta-box"><span>Stok minimum</span><strong><%= angka(row.stok_minimum) %> <%= row.satuan %></strong></div>
+    <div class="meta-box"><span>Harga satuan</span><strong><%= rupiah(row.harga_satuan) %></strong></div>
+    <div class="meta-box"><span>Nilai stok</span><strong><%= rupiah(row.stok * row.harga_satuan) %></strong></div>
+    <div class="meta-box span-2"><span>Lokasi simpan</span><strong><%= row.lokasi || 'Gudang' %></strong></div>
+  </div>
+</section>
+
+<% if (bolehKelola) { %>
+  <section class="card">
+    <div class="card-head"><h2>Catat stok</h2></div>
+    <div class="modal-body">
+      <form action="/bahan/<%= row.id %>/stok" method="post">
+        <div class="form-grid">
+          <div class="field">
+            <label>Jenis</label>
+            <select name="jenis">
+              <option value="masuk">Barang masuk (penerimaan)</option>
+              <option value="koreksi">Koreksi stok fisik (opname)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Jumlah (<%= row.satuan %>)</label>
+            <input class="input" type="number" step="0.01" min="0" name="jumlah" required>
+          </div>
+          <div class="field span-2">
+            <label>Keterangan</label>
+            <input class="input" name="keterangan" placeholder="Mis. pembelian / hasil hitung fisik">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Simpan mutasi</button>
+        </div>
+      </form>
+    </div>
+  </section>
+<% } %>
+
+<section class="card">
+  <div class="card-head"><h2>Riwayat mutasi</h2><span class="muted small">100 transaksi terakhir</span></div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Tanggal</th>
+          <th>Jenis</th>
+          <th class="num">Jumlah</th>
+          <th class="num">Stok akhir</th>
+          <th>Referensi</th>
+          <th>Keterangan</th>
+          <th class="col-dusun">Oleh</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!mutasi.length) { %>
+          <tr><td colspan="7" class="empty-cell">Belum ada mutasi untuk bahan ini.</td></tr>
+        <% } %>
+        <% mutasi.forEach((m) => { %>
+          <tr>
+            <td class="small"><%= m.created_at %></td>
+            <td><span class="badge <%= statusKelas(m.jenis) %>"><%= statusLabel[m.jenis] || m.jenis %></span></td>
+            <td class="num"><%= angka(m.jumlah) %> <%= row.satuan %></td>
+            <td class="num"><%= angka(m.stok_akhir) %></td>
+            <td class="small"><%= m.referensi || '-' %></td>
+            <td class="small"><%= m.keterangan || '-' %></td>
+            <td class="small col-dusun"><%= m.pengguna || '-' %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>

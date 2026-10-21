@@ -1,0 +1,241 @@
+<div class="page-head">
+  <div>
+    <h1>Langganan Pengelola</h1>
+    <p class="muted">Pantau paket, pemakaian kuota, dan masa aktif setiap pengelola.</p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-ghost" href="/superadmin/paket">Paket langganan</a>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="card kpi kpi-teal">
+    <span class="kpi-icon">🏢</span>
+    <span class="kpi-label">Pengelola</span>
+    <strong class="kpi-value"><%= angka(ringkas.pengelola) %></strong>
+    <span class="kpi-foot">Ruang kerja terdaftar</span>
+  </div>
+  <div class="card kpi kpi-blue">
+    <span class="kpi-icon">💰</span>
+    <span class="kpi-label">Pendapatan berjalan</span>
+    <strong class="kpi-value"><%= rupiah(ringkas.pendapatan) %></strong>
+    <span class="kpi-foot">Paket pengelola berstatus aktif</span>
+  </div>
+  <div class="card kpi kpi-amber">
+    <span class="kpi-icon">⚠️</span>
+    <span class="kpi-label">Perlu perhatian</span>
+    <strong class="kpi-value"><%= angka(ringkas.perhatian) %></strong>
+    <span class="kpi-foot">Kuota penuh / masa aktif hampir habis</span>
+  </div>
+  <div class="card kpi kpi-violet">
+    <span class="kpi-icon">🧾</span>
+    <span class="kpi-label">Tagihan belum lunas</span>
+    <strong class="kpi-value"><%= rupiah(ringkasTagihan.tertagih) %></strong>
+    <span class="kpi-foot"><%= angka(ringkasTagihan.menunggu) %> menunggu verifikasi</span>
+  </div>
+</div>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Tagihan langganan</h2>
+    <span class="muted small">Verifikasi pembayaran dari pengelola</span>
+  </div>
+  <% if (!tagihanTerbuka.length) { %>
+    <div class="empty"><p>Tidak ada tagihan langganan yang menunggu pembayaran.</p></div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Tagihan</th>
+            <th>Pengelola</th>
+            <th>Periode</th>
+            <th class="num">Jumlah</th>
+            <th>Bukti</th>
+            <th>Status</th>
+            <th class="col-aksi">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% tagihanTerbuka.forEach((t) => { %>
+            <tr>
+              <td class="small"><strong><%= t.nomor %></strong><div class="muted"><%= t.paket_nama %></div></td>
+              <td class="small"><%= t.desa_nama %></td>
+              <td class="small"><%= tanggal(t.periode_mulai) %> – <%= tanggal(t.periode_sampai) %></td>
+              <td class="num"><%= rupiah(t.jumlah) %></td>
+              <td class="small">
+                <% if (t.bukti_path) { %>
+                  <a class="link" href="<%= t.bukti_path %>" target="_blank" rel="noopener">Lihat bukti</a>
+                <% } else { %>
+                  <span class="muted">Belum ada</span>
+                <% } %>
+                <% if (t.catatan) { %><div class="muted wrap-any"><%= t.catatan %></div><% } %>
+              </td>
+              <td>
+                <span class="badge <%= t.status === 'menunggu' ? 'badge-warning' : 'badge-danger' %>">
+                  <%= labelStatusTagihan[t.status] || t.status %>
+                </span>
+              </td>
+              <td class="col-aksi nowrap">
+                <% if (t.status === 'menunggu') { %>
+                  <form action="/superadmin/langganan/tagihan/<%= t.id %>/verifikasi" method="post" style="display:inline;"
+                    data-confirm="Verifikasi pembayaran <%= t.nomor %> dan perpanjang masa aktif 1 bulan?">
+                    <button class="btn btn-primary btn-sm" type="submit">Verifikasi</button>
+                  </form>
+                  <form action="/superadmin/langganan/tagihan/<%= t.id %>/tolak" method="post" style="display:inline;"
+                    data-confirm="Tolak bukti pembayaran <%= t.nomor %>?">
+                    <input type="hidden" name="catatan_admin" value="Bukti pembayaran tidak sesuai">
+                    <button class="link text-danger" type="submit">Tolak</button>
+                  </form>
+                <% } else { %>
+                  <span class="small muted">Menunggu dibayar pengelola</span>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>
+
+<section class="card">
+  <div class="table-wrap" data-hasil="daftar">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Pengelola</th>
+          <th>Paket</th>
+          <th class="num">Pelanggan</th>
+          <th class="num">Sumur</th>
+          <th class="num">Dusun</th>
+          <th>Berakhir</th>
+          <th>Status</th>
+          <th class="col-aksi"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!rows.length) { %>
+          <tr><td colspan="8" class="empty-cell">Belum ada pengelola.</td></tr>
+        <% } %>
+        <% rows.forEach((r) => { %>
+          <tr>
+            <td>
+              <strong><%= r.desa.nama %></strong>
+              <div class="small muted"><%= r.desa.kecamatan || '' %><%= r.desa.kabupaten ? ` · ${r.desa.kabupaten}` : '' %></div>
+              <% if (r.desa.alamat) { %><div class="small muted wrap-any"><%= r.desa.alamat %></div><% } %>
+            </td>
+            <td>
+              <%= r.paket ? r.paket.nama : '—' %>
+              <% if (r.paket) { %><div class="small muted"><%= rupiah(r.paket.harga) %> / bulan</div><% } %>
+            </td>
+            <td class="num <%= r.batas.pelanggan && r.dipakai.pelanggan >= r.batas.pelanggan ? 'text-danger' : '' %>">
+              <%= angka(r.dipakai.pelanggan) %><span class="small muted">/<%= r.batas.pelanggan || '∞' %></span>
+            </td>
+            <td class="num <%= r.batas.sumur && r.dipakai.sumur >= r.batas.sumur ? 'text-danger' : '' %>">
+              <%= angka(r.dipakai.sumur) %><span class="small muted">/<%= r.batas.sumur || '∞' %></span>
+            </td>
+            <td class="num <%= r.batas.dusun && r.dipakai.dusun >= r.batas.dusun ? 'text-danger' : '' %>">
+              <%= angka(r.dipakai.dusun) %><span class="small muted">/<%= r.batas.dusun || '∞' %></span>
+            </td>
+            <td class="small">
+              <%= r.desa.langganan_sampai ? tanggal(r.desa.langganan_sampai) : '—' %>
+              <% if (r.hari != null) { %>
+                <div class="small <%= r.hari < 0 ? 'text-danger' : (r.hari <= 7 ? 'text-danger' : 'muted') %>">
+                  <%= r.hari < 0 ? 'sudah lewat' : `${r.hari} hari lagi` %>
+                </div>
+              <% } %>
+            </td>
+            <td>
+              <span class="badge <%= r.desa.status_langganan === 'aktif' ? 'badge-success' : (r.desa.status_langganan === 'trial' ? 'badge-info' : 'badge-danger') %>">
+                <%= r.desa.status_langganan || 'aktif' %>
+              </span>
+            </td>
+            <td class="num col-aksi nowrap">
+              <button class="link" type="button" data-modal-open="modalLangganan<%= r.desa.id %>">Atur</button>
+              <% if (r.dataOperasional === 0) { %>
+                <form action="/superadmin/langganan/<%= r.desa.id %>/hapus" method="post" style="display:inline;"
+                  data-confirm="Hapus ruang kerja <%= r.desa.nama %> beserta akun adminnya? Tindakan ini tidak bisa dibatalkan.">
+                  <button class="link text-danger" type="submit">Hapus</button>
+                </form>
+              <% } else { %>
+                <span class="small muted" title="Ruang kerja masih memiliki data operasional (pelanggan/tagihan/sumur/dsb).">—</span>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<p class="small muted" style="margin:-6px 4px 14px;">
+  Harga paket berlaku <strong>per bulan</strong>. Kolom <em>Berakhir</em> adalah akhir siklus berjalan —
+  gunakan tombol <strong>Atur</strong> dan pilih <em>“Mulai siklus baru — 1 bulan dari hari ini”</em>
+  untuk menyelaraskan ke siklus bulanan, atau <em>Perpanjang</em> untuk menambah bulan.
+</p>
+
+<% rows.forEach((r) => { %>
+  <dialog class="modal" id="modalLangganan<%= r.desa.id %>">
+    <div class="modal-head">
+      <div>
+        <h2>Langganan <%= r.desa.nama %></h2>
+        <span class="muted">Pemakaian: <%= angka(r.dipakai.pelanggan) %> pelanggan ·
+          <%= angka(r.dipakai.sumur) %> sumur · <%= angka(r.dipakai.dusun) %> dusun</span>
+      </div>
+      <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+    </div>
+    <div class="modal-body">
+      <form action="/superadmin/langganan/<%= r.desa.id %>" method="post">
+        <div class="form-grid">
+          <div class="field">
+            <label>Paket</label>
+            <select name="paket_id">
+              <option value="">— Tanpa paket —</option>
+              <% paketList.forEach((p) => { %>
+                <option value="<%= p.id %>" <%= r.paket && r.paket.id === p.id ? 'selected' : '' %>>
+                  <%= p.nama %> — <%= rupiah(p.harga) %> · <%= p.maks_pelanggan ? `${angka(p.maks_pelanggan)} pelanggan` : 'pelanggan tanpa batas' %><%= p.is_active ? '' : ' (nonaktif)' %>
+                </option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select name="status_langganan">
+              <% statusList.forEach((s) => { %>
+                <option value="<%= s %>" <%= (r.desa.status_langganan || 'aktif') === s ? 'selected' : '' %>><%= s %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="field">
+            <label>Berakhir pada</label>
+            <input class="input" type="date" name="langganan_sampai" value="<%= r.desa.langganan_sampai || '' %>">
+          </div>
+          <div class="field">
+            <label>Masa aktif</label>
+            <select name="mode_masa_aktif">
+              <option value="reset">Mulai siklus baru — 1 bulan dari hari ini</option>
+              <option value="tetap">Pertahankan tanggal berakhir</option>
+              <option value="1">Perpanjang +1 bulan</option>
+              <option value="3">Perpanjang +3 bulan</option>
+              <option value="6">Perpanjang +6 bulan</option>
+              <option value="12">Perpanjang +12 bulan</option>
+            </select>
+            <span class="small muted">
+              Harga paket berlaku per bulan. Jika paket diganti, siklus otomatis dimulai ulang 1 bulan
+              dari hari ini (kecuali Anda memilih mode lain).
+            </span>
+          </div>
+        </div>
+        <p class="small muted">
+          Bila kuota pelanggan/sumur sudah penuh, pengelola otomatis tidak bisa menambah data
+          sampai paket dinaikkan atau langganan diperpanjang.
+        </p>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Simpan langganan</button>
+          <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+<% }) %>

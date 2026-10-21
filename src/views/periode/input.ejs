@@ -1,0 +1,82 @@
+<div class="page-head">
+  <div>
+    <h1><%= pelanggan.nama %></h1>
+    <p class="muted"><%= pelanggan.nomor_pelanggan %> · <%= pelanggan.dusun %> · Periode <%= periodeLabel(periode.tahun, periode.bulan) %></p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-ghost" href="/periode/<%= periode.id %>/baca">Kembali ke daftar</a>
+  </div>
+</div>
+
+<section class="card reading-card">
+  <div class="reading-meta">
+    <div class="meta-box"><span>Pelanggan</span><strong><%= pelanggan.nama %></strong></div>
+    <div class="meta-box"><span>Nomor / Meter</span><strong><%= pelanggan.nomor_pelanggan %> · <%= pelanggan.nomor_meter %></strong></div>
+    <div class="meta-box"><span>Dusun / Sumur</span><strong><%= pelanggan.dusun %><%= pelanggan.sumur ? ` · ${pelanggan.sumur}` : '' %></strong></div>
+    <div class="meta-box"><span>Golongan</span><strong><%= pelanggan.golongan %></strong></div>
+  </div>
+
+  <% if (existing && existing.status === 'final') { %>
+    <div class="alert alert-info">
+      <span>Pembacaan ini sudah <strong>final</strong>. Perubahan hanya dapat dilakukan oleh admin desa.</span>
+    </div>
+  <% } %>
+  <% if (existing && existing.status === 'ditolak') { %>
+    <div class="alert alert-error">
+      <span>Ditolak admin: <strong><%= existing.alasan_tolak || 'perlu dicek ulang' %></strong>. Perbaiki lalu ajukan kembali.</span>
+    </div>
+  <% } %>
+
+  <form action="/periode/<%= periode.id %>/baca/<%= pelanggan.id %>" method="post" enctype="multipart/form-data">
+    <input type="hidden" name="angka_lalu" value="<%= angkaLalu %>">
+
+    <div class="form-grid">
+      <div class="field">
+        <label>Angka meter lalu</label>
+        <input class="input" id="angka_lalu" value="<%= angka(angkaLalu, 2) %>" readonly>
+      </div>
+      <div class="field">
+        <label>Angka meter kini</label>
+        <input class="input" id="angka_kini" name="angka_kini" type="number" step="0.01" min="0"
+          value="<%= existing ? existing.angka_kini : '' %>" required autofocus>
+      </div>
+    </div>
+
+    <div class="calc-box">
+      <span>Pemakaian terhitung</span>
+      <strong id="pemakaian_preview">0 m³</strong>
+    </div>
+
+    <div class="form-grid">
+      <div class="field">
+        <label>Kondisi meter</label>
+        <select name="kondisi_meter">
+          <% ['normal','rusak','macet','tidak_dihuni'].forEach((k) => { %>
+            <option value="<%= k %>" <%= existing && existing.kondisi_meter === k ? 'selected' : '' %>><%= statusLabel[k] %></option>
+          <% }) %>
+        </select>
+        <span class="small muted">Rusak/macet: pemakaian memakai rata-rata 3 bulan terakhir.</span>
+      </div>
+      <div class="field">
+        <label>Tanggal baca</label>
+        <input class="input" type="date" name="tanggal_baca" value="<%= existing ? (existing.tanggal_baca || today) : today %>">
+      </div>
+      <div class="field">
+        <label>Foto meter (opsional, maks. 4 MB)</label>
+        <input class="input" type="file" name="foto" accept="image/*">
+        <% if (existing && existing.foto_path) { %>
+          <a class="small" href="<%= existing.foto_path %>" target="_blank" rel="noopener">Lihat foto sebelumnya</a>
+        <% } %>
+      </div>
+      <div class="field">
+        <label>Catatan petugas</label>
+        <input class="input" name="catatan" value="<%= existing ? (existing.catatan || '') : '' %>" placeholder="Opsional">
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-ghost" type="submit" name="aksi" value="draft">Simpan draf</button>
+      <button class="btn btn-primary" type="submit" name="aksi" value="diajukan">Simpan &amp; ajukan verifikasi</button>
+    </div>
+  </form>
+</section>

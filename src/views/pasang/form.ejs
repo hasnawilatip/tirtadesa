@@ -1,0 +1,354 @@
+<% const diPopup = typeof dalamModal !== 'undefined' && dalamModal; %>
+<% if (!diPopup) { %>
+<div class="page-head">
+  <div>
+    <h1><%= row ? 'Ubah Pendaftaran' : 'Pendaftaran Pasang Baru' %></h1>
+    <p class="muted">
+      Nomor pendaftaran <strong><%= row ? row.nomor : nomorOtomatis %></strong> dibuat otomatis.
+      Hitung kebutuhan pipa &amp; bahan di bawah, lalu simpan draf atau langsung ajukan ke admin.
+    </p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-ghost" href="<%= row ? `/pasang/${row.id}` : '/pasang' %>">Kembali</a>
+  </div>
+</div>
+<% } %>
+
+<form action="<%= row ? `/pasang/${row.id}` : '/pasang' %>" method="post" id="formPasang">
+  <section class="card">
+    <div class="card-head"><h2>Data calon pelanggan</h2></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field">
+          <label>Nama lengkap</label>
+          <input class="input" name="nama" value="<%= row ? row.nama : '' %>" required placeholder="Nama calon pelanggan">
+        </div>
+        <div class="field">
+          <label>Telepon / WhatsApp</label>
+          <input class="input" name="telepon" value="<%= row ? (row.telepon || '') : '' %>" placeholder="08xxxxxxxxxx">
+        </div>
+        <div class="field">
+          <label>NIK (opsional)</label>
+          <input class="input" name="nik" value="<%= row ? (row.nik || '') : '' %>" placeholder="Nomor induk kependudukan">
+        </div>
+        <div class="field">
+          <label>Jumlah penghuni</label>
+          <input class="input" type="number" min="1" name="jumlah_penghuni" value="<%= row && row.jumlah_penghuni ? row.jumlah_penghuni : '' %>" placeholder="4">
+        </div>
+        <div class="field span-2">
+          <label>Alamat</label>
+          <input class="input" name="alamat" value="<%= row ? (row.alamat || '') : '' %>" placeholder="Jalan / RT / patokan rumah">
+        </div>
+        <div class="field"><label>RT</label><input class="input" name="rt" value="<%= row ? (row.rt || '') : '' %>" placeholder="01"></div>
+        <div class="field"><label>RW</label><input class="input" name="rw" value="<%= row ? (row.rw || '') : '' %>" placeholder="01"></div>
+        <div class="field">
+          <label>Dusun</label>
+          <select name="dusun_id" id="dusunPasang" required>
+            <% dusunList.forEach((d) => { %>
+              <option value="<%= d.id %>" <%= row && row.dusun_id === d.id ? 'selected' : '' %>><%= d.kode %> · <%= d.nama %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>Sumur sumber air</label>
+          <select name="sumur_id" id="sumurPasang">
+            <option value="">— Belum ditentukan —</option>
+            <% sumurList.forEach((s) => { %>
+              <option value="<%= s.id %>" data-dusun="<%= s.dusun_id %>" <%= row && row.sumur_id === s.id ? 'selected' : '' %>><%= s.kode %> · <%= s.nama %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>Golongan tarif</label>
+          <select name="golongan_id">
+            <option value="">— Belum ditentukan —</option>
+            <% golonganList.forEach((g) => { %>
+              <option value="<%= g.id %>" <%= row && row.golongan_id === g.id ? 'selected' : '' %>><%= g.kode %> · <%= g.nama %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>Tanggal survei</label>
+          <input class="input" type="date" name="tanggal_survei" value="<%= row && row.tanggal_survei ? row.tanggal_survei : today %>">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>Perhitungan pipa &amp; bahan</h2>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span class="muted small">Stok tersisa diambil dari gudang</span>
+        <button class="btn btn-ghost btn-sm" type="button" id="tambahBahan">+ Tambah bahan</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field">
+          <label>Ukuran pipa dinas</label>
+          <select name="ukuran_pipa">
+            <% ['1/2', '3/4', '1'].forEach((u) => { %>
+              <option value="<%= u %>" <%= row && row.ukuran_pipa === u ? 'selected' : (!row && u === '1/2' ? 'selected' : '') %>><%= u %> inci</option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>Panjang pipa (meter)</label>
+          <input class="input" type="number" step="0.5" min="0" name="panjang_pipa" id="panjangPipa"
+            value="<%= row ? row.panjang_pipa : 0 %>" placeholder="0">
+        </div>
+        <div class="field">
+          <label>Kedalaman tapping (meter)</label>
+          <input class="input" type="number" step="0.1" min="0" name="kedalaman_tapping"
+            value="<%= row && row.kedalaman_tapping != null ? row.kedalaman_tapping : '' %>" placeholder="1.2">
+        </div>
+        <div class="field">
+          <label>Biaya jasa pasang (Rp)</label>
+          <input class="input" type="number" step="1000" min="0" name="biaya_jasa" id="biayaJasa"
+            value="<%= row ? row.biaya_jasa : 0 %>">
+        </div>
+      </div>
+
+      <div class="table-wrap" style="margin-top:14px;">
+        <table class="table table-bahan" id="tabelBahan">
+          <thead>
+            <tr>
+              <th>Bahan / material</th>
+              <th class="num">Stok</th>
+              <th class="num" style="width:120px;">Jumlah</th>
+              <th class="num">Harga satuan</th>
+              <th class="num">Subtotal</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="barisBahan"></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="4" class="num"><strong>Total bahan</strong></td>
+              <td class="num"><strong id="totalBahan">Rp 0</strong></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td colspan="4" class="num"><strong>Total perkiraan biaya (bahan + jasa)</strong></td>
+              <td class="num"><strong id="totalBiaya">Rp 0</strong></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="bahan-actions">
+        <button class="btn btn-ghost" type="button" id="tambahBahanBawah">＋ Tambah baris bahan</button>
+        <span class="small muted">
+          Pilih bahan lalu isi jumlahnya — baris baru otomatis muncul saat baris terakhir dipakai.
+          Di HP, geser tabel ke samping untuk melihat kolom harga.
+        </span>
+      </div>
+      <p class="small muted">
+        Butuh bahan di luar daftar? Tambahkan dulu di menu <a class="link" href="/bahan">Gudang bahan</a>.
+        Stok akan otomatis dikurangi saat admin menyetujui pendaftaran ini.
+      </p>
+      <div class="field span-2">
+        <label>Catatan petugas / kondisi lokasi</label>
+        <input class="input" name="catatan" value="<%= row ? (row.catatan || '') : '' %>" placeholder="Mis. pipa melewati jalan, perlu bor">
+      </div>
+    </div>
+  </section>
+
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit" name="aksi" value="draf">Simpan draf</button>
+    <button class="btn btn-ghost" type="submit" name="aksi" value="ajukan">Simpan &amp; ajukan ke admin</button>
+    <% if (diPopup) { %>
+      <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+    <% } else { %>
+      <a class="btn btn-ghost" href="<%= row ? `/pasang/${row.id}` : '/pasang' %>">Batal</a>
+    <% } %>
+  </div>
+</form>
+
+<script>
+(function () {
+  const bahan = <%- jsonAman(bahanList.map((b) => ({
+    id: b.id,
+    nama: b.nama,
+    satuan: b.satuan,
+    kode: b.kode,
+    stok: b.stok,
+    harga: b.harga_satuan,
+    kategori: b.kategori,
+  }))) %>;
+  const dipilih = <%- jsonAman(rincian.map((b) => ({ id: b.bahan_id, jumlah: b.jumlah }))) %>;
+  const tbody = document.getElementById('barisBahan');
+  const rupiah = (n) => 'Rp ' + new Intl.NumberFormat('id-ID').format(Math.round(Number(n) || 0));
+  const angka = (n) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(Number(n) || 0);
+
+  function opsiBahan(terpilih) {
+    const grup = document.createElement('select');
+    grup.name = 'bahan_id[]';
+    grup.className = 'input';
+    const kosong = document.createElement('option');
+    kosong.value = '';
+    kosong.textContent = '— Pilih bahan —';
+    grup.appendChild(kosong);
+    bahan.forEach((b) => {
+      const opt = document.createElement('option');
+      opt.value = b.id;
+      opt.textContent = `${b.nama} (${b.kode})`;
+      opt.dataset.harga = b.harga;
+      opt.dataset.stok = b.stok;
+      opt.dataset.satuan = b.satuan;
+      if (String(terpilih) === String(b.id)) opt.selected = true;
+      grup.appendChild(opt);
+    });
+    return grup;
+  }
+
+  function tambahBaris(idTerpilih, jumlah) {
+    const tr = document.createElement('tr');
+    const pilih = opsiBahan(idTerpilih);
+
+    const tdPilih = document.createElement('td');
+    tdPilih.appendChild(pilih);
+
+    const tdStok = document.createElement('td');
+    tdStok.className = 'num small';
+    tdStok.dataset.label = 'Stok';
+    tdStok.textContent = '—';
+
+    const tdJumlah = document.createElement('td');
+    tdJumlah.dataset.label = 'Jumlah';
+    const inputJumlah = document.createElement('input');
+    inputJumlah.className = 'input';
+    inputJumlah.type = 'number';
+    inputJumlah.min = '0';
+    inputJumlah.step = '1';
+    inputJumlah.name = 'jumlah[]';
+    inputJumlah.value = jumlah ? jumlah : '';
+    inputJumlah.placeholder = '0';
+    tdJumlah.appendChild(inputJumlah);
+
+    const tdHarga = document.createElement('td');
+    tdHarga.className = 'num small';
+    tdHarga.dataset.label = 'Harga satuan';
+    tdHarga.textContent = '—';
+
+    const tdSub = document.createElement('td');
+    tdSub.className = 'num';
+    tdSub.dataset.label = 'Subtotal';
+    tdSub.textContent = 'Rp 0';
+
+    const tdHapus = document.createElement('td');
+    const hapus = document.createElement('button');
+    hapus.type = 'button';
+    hapus.className = 'btn btn-ghost btn-sm';
+    hapus.textContent = '×';
+    hapus.title = 'Hapus baris';
+    hapus.addEventListener('click', function () {
+      tr.remove();
+      hitung();
+      pastikanBarisKosong();
+    });
+    tdHapus.appendChild(hapus);
+
+    tr.append(tdPilih, tdStok, tdJumlah, tdHarga, tdSub, tdHapus);
+    tbody.appendChild(tr);
+
+    function segarkan() {
+      const opt = pilih.options[pilih.selectedIndex];
+      const harga = opt ? Number(opt.dataset.harga) || 0 : 0;
+      const stok = opt && opt.dataset.stok != null ? Number(opt.dataset.stok) : null;
+      const satuan = opt ? (opt.dataset.satuan || '') : '';
+      tdHarga.textContent = opt && opt.value ? rupiah(harga) : '—';
+      tdStok.textContent = opt && opt.value ? `${angka(stok)} ${satuan}` : '—';
+      const jumlah = Number(inputJumlah.value) || 0;
+      tdSub.textContent = rupiah(harga * jumlah);
+      if (stok != null && jumlah > stok) {
+        tdSub.classList.add('text-danger');
+        tdSub.title = 'Jumlah melebihi stok gudang';
+      } else {
+        tdSub.classList.remove('text-danger');
+        tdSub.title = '';
+      }
+      hitung();
+      // Baris terakhir selalu disiapkan kosong agar menambah bahan tinggal pilih.
+      if (opt && opt.value) pastikanBarisKosong();
+    }
+    pilih.addEventListener('change', segarkan);
+    inputJumlah.addEventListener('input', segarkan);
+    segarkan();
+  }
+
+  function pastikanBarisKosong() {
+    const daftar = tbody.querySelectorAll('tr');
+    const terakhir = daftar[daftar.length - 1];
+    if (!terakhir) {
+      tambahBaris('', 0);
+      return;
+    }
+    const pilih = terakhir.querySelector('select');
+    const opt = pilih && pilih.options[pilih.selectedIndex];
+    if (opt && opt.value) tambahBaris('', 0);
+  }
+
+  function hitung() {
+    let total = 0;
+    tbody.querySelectorAll('tr').forEach((tr) => {
+      const pilih = tr.querySelector('select');
+      const jumlah = Number(tr.querySelector('input[name="jumlah[]"]').value) || 0;
+      const opt = pilih && pilih.options[pilih.selectedIndex];
+      if (opt && opt.value) total += (Number(opt.dataset.harga) || 0) * jumlah;
+    });
+    const jasa = Number(document.getElementById('biayaJasa').value) || 0;
+    document.getElementById('totalBahan').textContent = rupiah(total);
+    document.getElementById('totalBiaya').textContent = rupiah(total + jasa);
+  }
+
+  document.getElementById('biayaJasa').addEventListener('input', hitung);
+  ['tambahBahan', 'tambahBahanBawah'].forEach((id) => {
+    const tombol = document.getElementById(id);
+    if (tombol) tombol.addEventListener('click', function () { tambahBaris('', 0); });
+  });
+
+  if (dipilih.length) {
+    dipilih.forEach((b) => tambahBaris(b.id, b.jumlah));
+  } else {
+    tambahBaris('', 0);
+    tambahBaris('', 0);
+  }
+
+  // Pipa otomatis: panjang pipa (m) → saran jumlah batang 4 m pada bahan pipa terpilih.
+  const panjang = document.getElementById('panjangPipa');
+  if (panjang) {
+    panjang.addEventListener('change', function () {
+      const meter = Number(panjang.value) || 0;
+      if (meter <= 0) return;
+      const batang = Math.ceil(meter / 4);
+      tbody.querySelectorAll('tr').forEach((tr) => {
+        const pilih = tr.querySelector('select');
+        const opt = pilih && pilih.options[pilih.selectedIndex];
+        if (!opt || !opt.value) return;
+        if (!/pipa/i.test(opt.textContent)) return;
+        const input = tr.querySelector('input[name="jumlah[]"]');
+        if (!Number(input.value)) input.value = batang;
+        input.dispatchEvent(new Event('input'));
+      });
+    });
+  }
+
+  // Saring pilihan sumur sesuai dusun.
+  const dusun = document.getElementById('dusunPasang');
+  const sumur = document.getElementById('sumurPasang');
+  function saringSumur() {
+    Array.from(sumur.options).forEach((opt) => {
+      if (!opt.value) return;
+      const cocok = String(opt.dataset.dusun) === String(dusun.value);
+      opt.hidden = !cocok;
+      if (!cocok && opt.selected) sumur.value = '';
+    });
+  }
+  if (dusun && sumur) {
+    dusun.addEventListener('change', saringSumur);
+    saringSumur();
+  }
+})();
+</script>

@@ -1,0 +1,69 @@
+<div class="page-head">
+  <div>
+    <h1>Profil Desa / Usaha</h1>
+    <p class="muted">Identitas pengelola (pelaku usaha) yang dipakai pada sidebar, struk, kwitansi, dan laporan.</p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-ghost" href="/">← Dashboard</a>
+  </div>
+</div>
+
+<section class="card" style="max-width: 760px;">
+  <form action="/profil-desa" method="post" enctype="multipart/form-data">
+    <div class="form-grid">
+      <div class="field span-2">
+        <label>Nama desa / usaha</label>
+        <input class="input" name="nama" value="<%= desa ? desa.nama : '' %>" required>
+        <span class="small muted">Tampil sebagai judul pada struk dan nama di sidebar.</span>
+      </div>
+      <div class="field span-2">
+        <label>Pelaku usaha / penanggung jawab</label>
+        <input class="input" name="pelaku_usaha" value="<%= desa ? (desa.pelaku_usaha || '') : '' %>" placeholder="Nama badan usaha, kelompok, atau perorangan">
+        <span class="small muted">Ditampilkan di bawah nama usaha pada struk tagihan & kwitansi.</span>
+      </div>
+      <div class="field">
+        <label>Kecamatan</label>
+        <input class="input" name="kecamatan" value="<%= desa ? (desa.kecamatan || '') : '' %>">
+      </div>
+      <div class="field">
+        <label>Kabupaten</label>
+        <input class="input" name="kabupaten" value="<%= desa ? (desa.kabupaten || '') : '' %>">
+      </div>
+      <div class="field span-2">
+        <label>Alamat kantor</label>
+        <input class="input" name="alamat" value="<%= desa ? (desa.alamat || '') : '' %>">
+      </div>
+      <div class="field">
+        <label>Telepon</label>
+        <input class="input" name="telepon" value="<%= desa ? (desa.telepon || '') : '' %>">
+      </div>
+    </div>
+
+    <div class="profile-logo">
+      <div class="profile-logo-preview">
+        <% const logoSekarang = desa && desa.logo_path; %>
+        <% if (logoSekarang) { %>
+          <img src="<%= logoSekarang %>" alt="Logo usaha">
+        <% } else { %>
+          <span class="small muted">Belum ada logo sendiri</span>
+        <% } %>
+      </div>
+      <div class="field" style="flex:1;margin-bottom:0;">
+        <label>Logo usaha (PNG/JPG/WebP, maks. 2 MB)</label>
+        <input class="input" type="file" name="logo" accept="image/png,image/jpeg,image/webp">
+        <span class="small muted">
+          Dipakai di sidebar dan struk. Bila kosong, memakai logo aplikasi dari Pengaturan.
+        </span>
+        <% if (logoSekarang) { %>
+          <label class="small" style="display:flex;align-items:center;gap:6px;margin-top:6px;">
+            <input type="checkbox" name="hapus_logo" value="1"> Hapus logo usaha saat menyimpan
+          </label>
+        <% } %>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Simpan profil</button>
+    </div>
+  </form>
+</section>

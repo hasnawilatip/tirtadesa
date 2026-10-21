@@ -1,0 +1,11 @@
+<div class="page-head">
+  <div>
+    <h1><%= row ? 'Edit Pelanggan' : 'Tambah Pelanggan' %></h1>
+    <p class="muted"><%= row ? `${row.nomor_pelanggan} · ${row.nama}` : 'Nomor pelanggan dapat dikosongkan untuk dibuat otomatis.' %></p>
+  </div>
+  <div class="page-actions"><a class="btn btn-ghost" href="<%= row ? `/pelanggan/${row.id}` : '/pelanggan' %>">Kembali</a></div>
+</div>
+
+<section class="card">
+  <%- include('_pelanggan-fields', { row, meter, dusunList, sumurList, golonganList, modal: false }) %>
+</section>

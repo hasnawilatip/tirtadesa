@@ -1,0 +1,266 @@
+<% const persen = (jenis) => {
+     const batas = info.batas[jenis];
+     if (!batas) return 0;
+     return Math.min(100, Math.round((info.dipakai[jenis] / batas) * 100));
+   };
+   const kelasBar = (jenis) => {
+     const p = persen(jenis);
+     if (info.batas[jenis] > 0 && p >= 100) return 'penuh';
+     if (info.batas[jenis] > 0 && p >= 90) return 'hampir';
+     return '';
+   };
+   const statusLangganan = String(info.desa.status_langganan || 'aktif');
+   const habis = info.hari != null && info.hari < 0;
+%>
+
+<div class="page-head">
+  <div>
+    <h1>Langganan Saya</h1>
+    <p class="muted">
+      Paket yang dipakai <%= info.desa.nama %> beserta pemakaian kuota dan masa aktifnya.
+    </p>
+  </div>
+  <div class="page-actions">
+    <% if (peranDesa) { %>
+      <a class="btn btn-ghost" href="/profil-desa">Profil desa</a>
+    <% } %>
+    <a class="btn btn-ghost" href="/">← Dashboard</a>
+  </div>
+</div>
+
+<section class="dash-hero langganan-hero">
+  <div>
+    <p class="langganan-eyebrow">Paket langganan</p>
+    <h2 class="langganan-nama"><%= info.paket ? info.paket.nama : 'Belum ada paket' %></h2>
+    <div class="hero-chips">
+      <div class="hero-chip">
+        <strong><%= info.paket ? rupiah(info.paket.harga) : '—' %></strong>
+        <span>per bulan</span>
+      </div>
+      <div class="hero-chip">
+        <strong><%= info.desa.langganan_sampai ? tanggal(info.desa.langganan_sampai) : '—' %></strong>
+        <span>Berakhir</span>
+      </div>
+      <div class="hero-chip">
+        <strong>
+          <% if (info.hari == null) { %>—<% } else if (info.hari < 0) { %>Lewat <%= Math.abs(info.hari) %> hari<% } else { %><%= info.hari %> hari lagi<% } %>
+        </strong>
+        <span>Sisa masa aktif</span>
+      </div>
+      <div class="hero-chip">
+        <strong><%= statusLabel[statusLangganan] || statusLangganan %></strong>
+        <span>Status</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<% if (info.peringatan.length) { %>
+  <div class="alert <%= habis || statusLangganan === 'ditangguhkan' ? 'alert-error' : 'alert-warning' %>">
+    <span><%= info.peringatan.join(' ') %></span>
+  </div>
+<% } %>
+
+<section class="card tagihan-langganan-kartu">
+  <div class="card-head">
+    <h2>Tagihan langganan</h2>
+    <span class="muted small">Iuran paket per bulan</span>
+  </div>
+
+  <% if (!tagihanTerbuka) { %>
+    <div class="empty">
+      <p>
+        <% if (info.paket && Number(info.paket.harga) > 0) { %>
+          Tidak ada tagihan yang harus dibayar saat ini. Tagihan baru dibuat otomatis setiap siklus.
+        <% } else { %>
+          Paket Anda tidak dikenakan biaya bulanan, jadi tidak ada tagihan langganan.
+        <% } %>
+      </p>
+    </div>
+  <% } else { %>
+    <div class="tagihan-langganan-isi">
+      <div>
+        <div class="tagihan-langganan-nomor"><%= tagihanTerbuka.nomor %></div>
+        <div class="small muted">
+          <%= tagihanTerbuka.paket_nama %> ·
+          periode <%= tanggal(tagihanTerbuka.periode_mulai) %> – <%= tanggal(tagihanTerbuka.periode_sampai) %>
+        </div>
+        <div class="tagihan-langganan-jumlah"><%= rupiah(tagihanTerbuka.jumlah) %></div>
+        <div class="small muted">
+          <span class="badge <%= tagihanTerbuka.status === 'lunas' ? 'badge-success' : (tagihanTerbuka.status === 'menunggu' ? 'badge-warning' : 'badge-danger') %>">
+            <%= labelStatusTagihan[tagihanTerbuka.status] || tagihanTerbuka.status %>
+          </span>
+          <% if (tagihanTerbuka.status === 'menunggu') { %>
+            · bukti terkirim <%= tagihanTerbuka.bukti_path ? '(ada)' : '(belum ada)' %>
+          <% } %>
+        </div>
+      </div>
+      <div class="tagihan-langganan-aksi">
+        <% if (tagihanTerbuka.status === 'belum_bayar' && bayarInfo.aktif && saluranTersedia > 0 && peranDesa) { %>
+          <a class="btn btn-primary" href="/langganan/tagihan/<%= tagihanTerbuka.id %>">Bayar sekarang</a>
+        <% } else if (!peranDesa) { %>
+          <a class="btn btn-ghost" href="/langganan/tagihan/<%= tagihanTerbuka.id %>">Lihat tagihan</a>
+          <span class="small muted">Pembayaran dilakukan admin desa.</span>
+        <% } else { %>
+          <a class="btn btn-ghost" href="/langganan/tagihan/<%= tagihanTerbuka.id %>">
+            <%= tagihanTerbuka.status === 'menunggu' ? 'Lihat status / unggah bukti' : 'Lihat tagihan' %>
+          </a>
+        <% } %>
+        <% if (!bayarInfo.aktif || saluranTersedia === 0) { %>
+          <span class="small muted">Pembayaran online belum tersedia — hubungi penyedia layanan.</span>
+        <% } %>
+      </div>
+    </div>
+  <% } %> 
+
+  <% if (riwayatTagihan.length) { %>
+    <div class="table-wrap" style="margin-top:14px;">
+      <table class="table">
+        <thead>
+          <tr><th>Tagihan</th><th>Periode</th><th class="num">Jumlah</th><th>Status</th><th class="col-aksi"></th></tr>
+        </thead>
+        <tbody>
+          <% riwayatTagihan.forEach((t) => { %>
+            <tr>
+              <td class="small"><strong><%= t.nomor %></strong><div class="muted"><%= t.paket_nama %></div></td>
+              <td class="small"><%= tanggal(t.periode_mulai) %> – <%= tanggal(t.periode_sampai) %></td>
+              <td class="num"><%= rupiah(t.jumlah) %></td>
+              <td><span class="badge <%= t.status === 'lunas' ? 'badge-success' : (t.status === 'menunggu' ? 'badge-warning' : (t.status === 'batal' ? 'badge-muted' : 'badge-danger')) %>"><%= labelStatusTagihan[t.status] || t.status %></span></td>
+              <td class="col-aksi"><a class="link" href="/langganan/tagihan/<%= t.id %>">Detail</a></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>
+
+<div class="kpi-grid">
+  <div class="card kpi kpi-teal">
+    <span class="kpi-icon">👥</span>
+    <span class="kpi-label">Pelanggan</span>
+    <strong class="kpi-value"><%= angka(info.dipakai.pelanggan) %></strong>
+    <span class="kpi-foot">
+      <% if (info.batas.pelanggan > 0) { %>Batas <%= angka(info.batas.pelanggan) %> · sisa <%= angka(info.sisa.pelanggan) %><% } else { %>Tanpa batas<% } %>
+    </span>
+  </div>
+  <div class="card kpi kpi-blue">
+    <span class="kpi-icon">💧</span>
+    <span class="kpi-label">Sumur bor</span>
+    <strong class="kpi-value"><%= angka(info.dipakai.sumur) %></strong>
+    <span class="kpi-foot">
+      <% if (info.batas.sumur > 0) { %>Batas <%= angka(info.batas.sumur) %> · sisa <%= angka(info.sisa.sumur) %><% } else { %>Tanpa batas<% } %>
+    </span>
+  </div>
+  <div class="card kpi kpi-violet">
+    <span class="kpi-icon">🏘</span>
+    <span class="kpi-label">Dusun</span>
+    <strong class="kpi-value"><%= angka(info.dipakai.dusun) %></strong>
+    <span class="kpi-foot">
+      <% if (info.batas.dusun > 0) { %>Batas <%= angka(info.batas.dusun) %> · sisa <%= angka(info.sisa.dusun) %><% } else { %>Tanpa batas<% } %>
+    </span>
+  </div>
+</div>
+
+<div class="grid-2">
+  <section class="card">
+    <div class="card-head">
+      <h2>Pemakaian kuota</h2>
+      <span class="muted small"><%= info.paket ? info.paket.nama : 'Tanpa paket' %></span>
+    </div>
+    <div class="kuota-grid">
+      <% [['pelanggan', 'Pelanggan'], ['sumur', 'Sumur'], ['dusun', 'Dusun']].forEach(([jenis, label]) => { %>
+        <div class="kuota-item">
+          <div class="kuota-label">
+            <span><%= label %></span>
+            <strong><%= angka(info.dipakai[jenis]) %><span class="muted">/<%= info.batas[jenis] || '∞' %></span></strong>
+          </div>
+          <div class="kuota-bar <%= kelasBar(jenis) %>">
+            <span style="width:<%= info.batas[jenis] > 0 ? persen(jenis) : 4 %>%;"></span>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+    <div class="table-wrap" style="margin-top:14px;">
+      <table class="table">
+        <thead>
+          <tr><th>Kuota</th><th class="num">Terpakai</th><th class="num">Batas</th><th class="num">Sisa</th></tr>
+        </thead>
+        <tbody>
+          <% [['pelanggan', 'Pelanggan'], ['sumur', 'Sumur bor'], ['dusun', 'Dusun']].forEach(([jenis, label]) => { %>
+            <tr>
+              <td><%= label %></td>
+              <td class="num"><%= angka(info.dipakai[jenis]) %></td>
+              <td class="num"><%= info.batas[jenis] > 0 ? angka(info.batas[jenis]) : '∞' %></td>
+              <td class="num"><%= info.sisa[jenis] == null ? '∞' : angka(info.sisa[jenis]) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% if (info.paket && info.paket.deskripsi) { %>
+      <p class="small muted" style="margin:12px 0 0;"><%= info.paket.deskripsi %></p>
+    <% } %>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Masa aktif</h2></div>
+    <div class="bayar-rincian">
+      <div><span>Paket</span><strong><%= info.paket ? info.paket.nama : 'Belum ada' %></strong></div>
+      <div><span>Harga</span><strong><%= info.paket ? `${rupiah(info.paket.harga)} / bulan` : '—' %></strong></div>
+      <div><span>Mulai</span><strong><%= info.desa.langganan_mulai ? tanggal(info.desa.langganan_mulai) : '—' %></strong></div>
+      <div><span>Berakhir</span><strong><%= info.desa.langganan_sampai ? tanggal(info.desa.langganan_sampai) : '—' %></strong></div>
+      <div>
+        <span>Status</span>
+        <strong>
+          <span class="badge <%= statusLangganan === 'aktif' ? 'badge-success' : (statusLangganan === 'trial' ? 'badge-warning' : 'badge-danger') %>">
+            <%= statusLabel[statusLangganan] || statusLangganan %>
+          </span>
+        </strong>
+      </div>
+    </div>
+
+    <div class="langganan-catatan">
+      <h3 class="mini-judul">Cara memperpanjang / menambah paket</h3>
+      <p class="small muted">
+        Harga paket dihitung <strong>per bulan</strong>. Perpanjangan, perubahan paket, dan
+        aktivasi kembali dikelola oleh <strong>penyedia layanan</strong>
+        <% if (!peranDesa) { %> — mintakan melalui <strong>admin desa</strong> Anda<% } %>.
+        Sertakan nama pengelola <strong><%= info.desa.nama %></strong> saat menghubungi.
+      </p>
+      <% if (peranDesa) { %>
+        <a class="btn btn-ghost btn-sm" href="/lupa-password">Butuh bantuan akses?</a>
+      <% } %>
+    </div>
+  </section>
+</div>
+
+<% if (paketLain.length) { %>
+  <section class="card">
+    <div class="card-head">
+      <h2>Paket lain yang tersedia</h2>
+      <span class="muted small">Ajukan ke penyedia layanan bila kapasitas kurang</span>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr><th>Paket</th><th class="num">Harga / bulan</th><th class="num">Pelanggan</th><th class="num">Sumur</th><th class="num">Dusun</th></tr>
+        </thead>
+        <tbody>
+          <% paketLain.forEach((p) => { %>
+            <tr>
+              <td>
+                <strong><%= p.nama %></strong>
+                <div class="small muted"><%= p.deskripsi || '-' %></div>
+              </td>
+              <td class="num"><%= rupiah(p.harga) %></td>
+              <td class="num"><%= p.maks_pelanggan ? angka(p.maks_pelanggan) : '∞' %></td>
+              <td class="num"><%= p.maks_sumur ? angka(p.maks_sumur) : '∞' %></td>
+              <td class="num"><%= p.maks_dusun ? angka(p.maks_dusun) : '∞' %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+<% } %>

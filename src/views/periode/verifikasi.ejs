@@ -1,0 +1,146 @@
+<%
+  const countMap = {};
+  counts.forEach((c) => { countMap[c.status] = c.n; });
+  // Aksi massal menyesuaikan tab: Draf/Ditolak → Ajukan; Diajukan → Setujui/Tolak.
+  const aksiTab = ['draft', 'ditolak'].includes(filterStatus)
+    ? ['ajukan']
+    : (filterStatus === 'diajukan' ? ['setujui', 'tolak'] : []);
+  const kolomTabel = aksiTab.length ? 10 : 9;
+%>
+<div class="page-head">
+  <div>
+    <h1>Verifikasi Pembacaan</h1>
+    <p class="muted"><%= periodeLabel(periode.tahun, periode.bulan) %> · periksa angka meter sebelum tagihan diterbitkan.</p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-ghost" href="/periode/<%= periode.id %>/baca">Daftar baca</a>
+    <form action="/periode/<%= periode.id %>/verifikasi-semua" method="post" data-confirm="Setujui semua pembacaan yang diajukan?">
+      <button class="btn btn-primary" type="submit">Setujui semua (<%= countMap.diajukan || 0 %>)</button>
+    </form>
+  </div>
+</div>
+
+<div class="tabs">
+  <% [['diajukan','Diajukan'],['final','Final'],['ditolak','Ditolak'],['draft','Draf']].forEach(([key, label]) => { %>
+    <a class="tab <%= filterStatus === key ? 'active' : '' %>" href="/periode/<%= periode.id %>/verifikasi?status=<%= key %>">
+      <%= label %> (<%= countMap[key] || 0 %>)
+    </a>
+  <% }) %>
+</div>
+
+<% if (rows.length && aksiTab.length) { %>
+  <form id="formMassal" action="/periode/<%= periode.id %>/verifikasi-massal" method="post" class="bulk-bar" hidden>
+    <input type="hidden" name="status" value="<%= filterStatus %>">
+    <div class="bulk-info"><strong id="jumlahDipilih">0</strong> pembacaan dipilih</div>
+    <div class="btn-row" style="margin:0;">
+      <% if (aksiTab.includes('ajukan')) { %>
+        <button class="btn btn-primary btn-sm" type="submit" name="aksi" value="ajukan" data-bulk disabled>Ajukan terpilih</button>
+      <% } %>
+      <% if (aksiTab.includes('setujui')) { %>
+        <button class="btn btn-primary btn-sm" type="submit" name="aksi" value="setujui" data-bulk disabled>Setujui terpilih</button>
+      <% } %>
+      <% if (aksiTab.includes('tolak')) { %>
+        <details>
+          <summary class="link" style="cursor:pointer;font-size:.8rem;">Tolak terpilih</summary>
+          <div class="btn-row" style="margin-top:6px;">
+            <input class="input" name="alasan" placeholder="Alasan penolakan" style="width:200px;">
+            <button class="btn btn-danger btn-sm" type="submit" name="aksi" value="tolak" data-bulk disabled>Kirim penolakan</button>
+          </div>
+        </details>
+      <% } %>
+    </div>
+  </form>
+<% } %>
+
+<section class="card">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <% if (aksiTab.length) { %><th style="width:34px;"><input type="checkbox" id="pilihSemuaVerifikasi" aria-label="Pilih semua"></th><% } %>
+          <th>Pelanggan</th>
+          <th>Dusun</th>
+          <th>Meter</th>
+          <th class="num">Awal</th>
+          <th class="num">Kini</th>
+          <th class="num">Pakai</th>
+          <th>Kondisi</th>
+          <th>Petugas</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!rows.length) { %><tr><td colspan="<%= kolomTabel %>" class="empty-cell">Tidak ada data pada status ini.</td></tr><% } %>
+        <% rows.forEach((b) => { %>
+          <tr>
+            <% if (aksiTab.length) { %><td><input type="checkbox" class="pilih-baca" name="reading_ids" value="<%= b.id %>" form="formMassal" aria-label="Pilih <%= b.nama %>"></td><% } %>
+            <td>
+              <strong><%= b.nama %></strong>
+              <div class="small muted"><%= b.nomor_pelanggan %></div>
+              <% if (b.foto_path) { %><a class="small" href="<%= b.foto_path %>" target="_blank" rel="noopener">Foto meter</a><% } %>
+            </td>
+            <td><%= b.dusun %><div class="small muted"><%= b.sumur || '-' %></div></td>
+            <td class="small"><%= b.nomor_meter %></td>
+            <td class="num"><%= angka(b.angka_lalu, 1) %></td>
+            <td class="num"><%= angka(b.angka_kini, 1) %></td>
+            <td class="num"><strong><%= angka(b.pemakaian_m3, 1) %></strong></td>
+            <td>
+              <span class="badge <%= b.kondisi_meter === 'normal' ? 'badge-success' : 'badge-warning' %>"><%= statusLabel[b.kondisi_meter] %></span>
+              <% if (b.catatan) { %><div class="small muted"><%= b.catatan %></div><% } %>
+            </td>
+            <td class="small"><%= b.petugas || '-' %><div class="muted"><%= b.tanggal_baca || '' %></div></td>
+            <td>
+              <% if (b.status === 'diajukan' || b.status === 'ditolak') { %>
+                <div class="btn-row" style="margin:0;">
+                  <form action="/periode/<%= periode.id %>/verifikasi/<%= b.id %>" method="post">
+                    <input type="hidden" name="aksi" value="setujui">
+                    <button class="btn btn-primary btn-sm" type="submit">Setujui</button>
+                  </form>
+                  <details>
+                    <summary class="link" style="cursor:pointer;font-size:.8rem;">Tolak</summary>
+                    <form action="/periode/<%= periode.id %>/verifikasi/<%= b.id %>" method="post" class="btn-row" style="margin-top:6px;">
+                      <input type="hidden" name="aksi" value="tolak">
+                      <input class="input" name="alasan" placeholder="Alasan" style="width:150px;">
+                      <button class="btn btn-danger btn-sm" type="submit">Kirim</button>
+                    </form>
+                  </details>
+                </div>
+              <% } else { %>
+                <span class="badge <%= statusKelas(b.status) %>"><%= statusLabel[b.status] %></span>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<script>
+  (function () {
+    const form = document.getElementById('formMassal');
+    if (!form) return;
+    const kotak = [...document.querySelectorAll('.pilih-baca')];
+    const semua = document.getElementById('pilihSemuaVerifikasi');
+    const info = document.getElementById('jumlahDipilih');
+    const tombol = form.querySelectorAll('button[data-bulk]');
+
+    function segarkan() {
+      const n = kotak.filter((c) => c.checked).length;
+      if (info) info.textContent = n;
+      // Toolbar hanya muncul saat ada pembacaan yang dipilih.
+      form.hidden = n === 0;
+      tombol.forEach((b) => { b.disabled = n === 0; });
+      if (semua) semua.checked = n > 0 && n === kotak.length;
+    }
+
+    kotak.forEach((c) => c.addEventListener('change', segarkan));
+    if (semua) {
+      semua.addEventListener('change', () => {
+        kotak.forEach((c) => { c.checked = semua.checked; });
+        segarkan();
+      });
+    }
+    segarkan();
+  })();
+</script>

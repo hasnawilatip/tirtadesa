@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b2239">
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <meta name="description" content="Daftar sebagai pengelola sumur bor di <%= pengaturan.nama_aplikasi %>. Kelola pelanggan, meter, tagihan, dan pemasukan air dari satu aplikasi.">
+  <title>Gabung Pengelola · <%= pengaturan.nama_aplikasi %></title>
+  <link rel="stylesheet" href="/css/style.css?v=<%= typeof versiAset !== 'undefined' ? versiAset : '' %>">
+</head>
+<body class="join-body">
+<%- include('partials/loader') %>
+
+<header class="home-nav">
+  <div class="home-nav-inner">
+    <a class="home-brand" href="/">
+      <% if (pengaturan.logo_path) { %>
+        <img class="brand-logo" src="<%= pengaturan.logo_path %>" alt="Logo <%= pengaturan.nama_aplikasi %>">
+      <% } else { %>
+        <span class="brand-mark"><%= brandInisial %></span>
+      <% } %>
+      <span class="brand-text">
+        <strong><%= pengaturan.nama_aplikasi %></strong>
+        <span><%= pengaturan.tagline %></span>
+      </span>
+    </a>
+    <div class="home-nav-actions">
+      <a class="btn btn-ghost btn-sm" href="/">← Beranda</a>
+      <a class="btn btn-primary btn-sm" href="/login">Masuk</a>
+    </div>
+  </div>
+</header>
+
+<main class="join-main">
+  <section class="join-pitch">
+    <span class="hero-badge">Gabung Pengelola</span>
+    <h1>Bawa pengelolaan sumur bor Anda lebih profesional.</h1>
+    <p>Daftarkan usaha atau kelompok sumur bor Anda. Setelah terdaftar, Anda bisa mencatat meter pelanggan, menerbitkan tagihan, mencatat pembayaran, dan memantau pemasukan air dari satu aplikasi.</p>
+    <ul class="join-list">
+      <li>Gratis untuk memulai, tanpa biaya pendaftaran</li>
+      <li>Dibantu penyiapan data pelanggan dan tarif awal</li>
+      <li>Bisa diakses dari HP maupun laptop</li>
+      <li>Cocok untuk satu sumur bor atau banyak titik</li>
+    </ul>
+    <div class="join-note">
+      <span aria-hidden="true">☎</span>
+      <div>
+        <strong>Dihubungi lewat WhatsApp</strong>
+        Tim kami akan menghubungi Anda maksimal 1×24 jam kerja untuk proses aktivasi akun.
+      </div>
+    </div>
+  </section>
+
+  <section class="join-card">
+    <% if (sukses) { %>
+      <div class="join-success">
+        <div class="big-check">✓</div>
+        <h2>Pendaftaran terkirim!</h2>
+        <p>Terima kasih sudah mendaftar. Tim <%= pengaturan.nama_aplikasi %> akan menghubungi Anda lewat WhatsApp untuk membantu proses aktivasi akun pengelola sumur bor.</p>
+        <div class="btn-row center" style="justify-content:center;">
+          <a class="btn btn-primary" href="/">Kembali ke beranda</a>
+          <a class="btn btn-ghost" href="/login">Masuk aplikasi</a>
+        </div>
+      </div>
+    <% } else { %>
+      <h2>Formulir pendaftaran</h2>
+      <p class="muted">Pilih jenis pendaftaran. Kolom yang tampil akan menyesuaikan pilihan Anda.</p>
+
+      <% if (error) { %>
+        <div class="alert alert-error" style="margin-top:16px;"><span><%= error %></span></div>
+      <% } %>
+
+      <form class="join-form" action="/gabung" method="post">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <% const jenisAktif = ['desa', 'dusun', 'individu'].includes(form.jenis) ? form.jenis : 'desa'; %>
+        <div class="join-types" role="radiogroup" aria-label="Jenis pendaftaran">
+          <label class="join-type <%= jenisAktif === 'desa' ? 'aktif' : '' %>">
+            <input type="radio" name="jenis" value="desa" <%= jenisAktif === 'desa' ? 'checked' : '' %>>
+            <strong>Desa</strong>
+            <span>Pengelola layanan air tingkat desa</span>
+          </label>
+          <label class="join-type <%= jenisAktif === 'dusun' ? 'aktif' : '' %>">
+            <input type="radio" name="jenis" value="dusun" <%= jenisAktif === 'dusun' ? 'checked' : '' %>>
+            <strong>Dusun</strong>
+            <span>Pengelola sumur bor per dusun</span>
+          </label>
+          <label class="join-type <%= jenisAktif === 'individu' ? 'aktif' : '' %>">
+            <input type="radio" name="jenis" value="individu" <%= jenisAktif === 'individu' ? 'checked' : '' %>>
+            <strong>Individu / Usaha</strong>
+            <span>Perorangan, perumahan, kos, atau usaha</span>
+          </label>
+        </div>
+
+        <div class="join-jenis-panel" data-jenis-panel="desa" <%= jenisAktif === 'desa' ? '' : 'hidden' %>>
+          <%- include('partials/wilayah', {
+            prefix: 'desa', fieldDesa: 'nama_desa', labelDesa: 'Desa/Kelurahan',
+            form, aktif: jenisAktif === 'desa',
+          }) %>
+        </div>
+
+        <div class="join-jenis-panel" data-jenis-panel="dusun" <%= jenisAktif === 'dusun' ? '' : 'hidden' %>>
+          <div class="field">
+            <label for="nama_dusun">Nama dusun *</label>
+            <input class="input" id="nama_dusun" name="nama_dusun" value="<%= form.nama_dusun || '' %>" data-required <%= jenisAktif === 'dusun' ? 'required' : 'disabled' %>>
+          </div>
+          <%- include('partials/wilayah', {
+            prefix: 'dusun', fieldDesa: 'desa_induk', labelDesa: 'Desa induk',
+            form, aktif: jenisAktif === 'dusun',
+          }) %>
+        </div>
+
+        <div class="join-jenis-panel" data-jenis-panel="individu" <%= jenisAktif === 'individu' ? '' : 'hidden' %>>
+          <div class="field">
+            <label for="nama_usaha">Nama usaha / sumur bor *</label>
+            <input class="input" id="nama_usaha" name="nama_usaha" value="<%= form.nama_usaha || '' %>" placeholder="Contoh: Sumur Bor Sumber Rejeki" data-required <%= jenisAktif === 'individu' ? 'required' : 'disabled' %>>
+          </div>
+          <%- include('partials/wilayah', {
+            prefix: 'usaha', fieldDesa: 'nama_desa', labelDesa: 'Desa/Kelurahan',
+            form, aktif: jenisAktif === 'individu',
+          }) %>
+          <p class="small muted">Wilayah ini dipakai sebagai <strong>alamat usaha</strong> / lokasi sumur bor.</p>
+        </div>
+
+        <div class="join-grid">
+          <div class="field">
+            <label for="nama">Nama penanggung jawab *</label>
+            <input class="input" id="nama" name="nama" value="<%= form.nama || '' %>" required autocomplete="name">
+          </div>
+          <div class="field">
+            <label for="whatsapp">No. WhatsApp *</label>
+            <input class="input" id="whatsapp" name="whatsapp" value="<%= form.whatsapp || '' %>" placeholder="081234567890" inputmode="tel" required>
+          </div>
+        </div>
+        <div class="field">
+          <label for="jumlah_pelanggan">Jumlah pelanggan</label>
+          <select id="jumlah_pelanggan" name="jumlah_pelanggan">
+            <option value="">— Belum tahu —</option>
+            <% ukuranPelanggan.forEach((u) => { %>
+              <option value="<%= u %>" <%= form.jumlah_pelanggan === u ? 'selected' : '' %>><%= u %> pelanggan</option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label for="email">Email (opsional)</label>
+          <input class="input" id="email" name="email" type="email" value="<%= form.email || '' %>" placeholder="nama@email.com" autocomplete="email">
+        </div>
+
+        <div class="field">
+          <label>Pilih paket langganan *</label>
+          <% const paketTerpilih = form.paket_id || ((paketList && paketList[0]) ? paketList[0].id : ''); %>
+          <div class="paket-pilih">
+            <% (paketList || []).forEach((p) => { %>
+              <label class="paket-kartu <%= String(paketTerpilih) === String(p.id) ? 'aktif' : '' %>">
+                <input type="radio" name="paket_id" value="<%= p.id %>" required
+                  <%= String(paketTerpilih) === String(p.id) ? 'checked' : '' %>>                <span class="paket-nama"><%= p.nama %></span>
+                <span class="paket-harga"><%= rupiah(p.harga) %><small>/bulan</small></span>
+                <span class="paket-rinci">
+                  <%= p.maks_pelanggan ? `${angka(p.maks_pelanggan)} pelanggan` : 'Pelanggan tanpa batas' %>
+                  · <%= p.maks_sumur ? `${angka(p.maks_sumur)} sumur` : 'sumur tanpa batas' %>
+                  · <%= p.maks_dusun ? `${angka(p.maks_dusun)} dusun` : 'dusun tanpa batas' %>
+                </span>
+                <% if (p.deskripsi) { %><span class="paket-desk"><%= p.deskripsi %></span><% } %>
+              </label>
+            <% }) %>
+          </div>
+          <span class="small muted">Paket bisa diubah/ditingkatkan kapan saja melalui admin layanan.</span>
+        </div>
+
+        <div class="field">
+          <label for="pesan">Cerita singkat (opsional)</label>
+          <textarea class="input" id="pesan" name="pesan" rows="3" placeholder="Contoh: 1 sumur bor dengan 60 pelanggan, ingin tagihan tercatat rapi."><%= form.pesan || '' %></textarea>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary btn-block" type="submit">Kirim Pendaftaran</button>
+        </div>
+        <p class="small muted" style="margin-top:10px;">Dengan mendaftar, Anda setuju dihubungi tim <%= pengaturan.nama_aplikasi %> melalui WhatsApp.</p>
+      </form>
+      <script>
+        document.querySelectorAll('input[name="paket_id"]').forEach((radio) => {
+          radio.addEventListener('change', () => {
+            document.querySelectorAll('.paket-kartu').forEach((kartu) => kartu.classList.remove('aktif'));
+            const dipilih = radio.closest('.paket-kartu');
+            if (dipilih) dipilih.classList.add('aktif');
+          });
+        });
+      </script>
+    <% } %>
+  </section>
+</main>
+
+<footer class="home-foot join-foot">
+  <div class="home-foot-inner">
+    <span>© <%= new Date().getFullYear() %> <%= pengaturan.nama_aplikasi %> · <%= pengaturan.tagline %> · Dikembangkan oleh <strong>Hasnawi Latip</strong></span>
+    <a href="/login">Masuk aplikasi</a>
+  </div>
+</footer>
+
+<script src="/js/app.js?v=<%= typeof versiAset !== 'undefined' ? versiAset : '' %>"></script>
+</body>
+</html>
