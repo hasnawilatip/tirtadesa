@@ -688,3 +688,38 @@
     hitung();
   }
 })();
+
+// ---------- Mode terang / gelap ----------
+// Pilihan disimpan di localStorage dan diterapkan sebelum halaman digambar
+// lewat partial `partials/tema` (agar tidak berkedip).
+(() => {
+  const KUNCI = 'tirtadesa_tema';
+  const akar = document.documentElement;
+  const tombol = document.querySelectorAll('[data-tema-toggle]');
+  const gelap = () => akar.getAttribute('data-tema') === 'gelap';
+
+  const perbaruiTombol = () => {
+    tombol.forEach((btn) => {
+      btn.textContent = gelap() ? '☀️' : '🌙';
+      const label = gelap() ? 'Mode terang' : 'Mode gelap';
+      btn.setAttribute('aria-label', label);
+      btn.setAttribute('title', label);
+      btn.setAttribute('aria-pressed', gelap() ? 'true' : 'false');
+    });
+  };
+
+  tombol.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (gelap()) akar.removeAttribute('data-tema');
+      else akar.setAttribute('data-tema', 'gelap');
+      try {
+        localStorage.setItem(KUNCI, gelap() ? 'gelap' : 'terang');
+      } catch (e) {
+        // localStorage diblokir: tema tetap berlaku untuk halaman ini.
+      }
+      perbaruiTombol();
+    });
+  });
+
+  perbaruiTombol();
+})();

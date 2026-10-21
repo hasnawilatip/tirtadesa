@@ -7,6 +7,7 @@
   <meta name="csrf-token" content="<%= csrfToken %>">
   <meta name="description" content="Daftar sebagai pengelola sumur bor di <%= pengaturan.nama_aplikasi %>. Kelola pelanggan, meter, tagihan, dan pemasukan air dari satu aplikasi.">
   <title>Gabung Pengelola · <%= pengaturan.nama_aplikasi %></title>
+  <%- include('partials/tema') %>
   <link rel="stylesheet" href="/css/style.css?v=<%= typeof versiAset !== 'undefined' ? versiAset : '' %>">
 </head>
 <body class="join-body">
@@ -26,6 +27,7 @@
       </span>
     </a>
     <div class="home-nav-actions">
+      <button class="theme-btn" type="button" data-tema-toggle aria-label="Mode gelap" title="Mode gelap">🌙</button>
       <a class="btn btn-ghost btn-sm" href="/">← Beranda</a>
       <a class="btn btn-primary btn-sm" href="/login">Masuk</a>
     </div>

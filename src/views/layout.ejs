@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="<%= csrfToken %>">
   <title><%= title %> · <%= pengaturan.nama_aplikasi %></title>
+  <%- include('partials/tema') %>
   <script>
     // Terapkan status sidebar sebelum halaman digambar agar tidak berkedip.
     try {
@@ -195,6 +196,7 @@
       <button class="menu-btn" id="menuBtn" type="button" aria-label="Buka menu">☰</button>
       <button class="collapse-btn" id="collapseBtn" type="button" aria-label="Kecilkan menu" title="Kecilkan menu">«</button>
       <div class="topbar-title"><%= title %></div>
+      <button class="theme-btn" type="button" data-tema-toggle aria-label="Mode gelap" title="Mode gelap">🌙</button>
       <div class="user-chip">
         <span class="avatar"><%= user.nama.charAt(0).toUpperCase() %></span>
         <div class="user-meta">

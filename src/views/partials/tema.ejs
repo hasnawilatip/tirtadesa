@@ -1,0 +1,11 @@
+<script>
+  // Terapkan tema sebelum halaman digambar agar tidak berkedip.
+  // Pilihan pengguna disimpan di localStorage; bawaan tetap terang.
+  (function () {
+    try {
+      if (localStorage.getItem('tirtadesa_tema') === 'gelap') {
+        document.documentElement.setAttribute('data-tema', 'gelap');
+      }
+    } catch (e) { /* localStorage diblokir */ }
+  })();
+</script>

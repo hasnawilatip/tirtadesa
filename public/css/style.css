@@ -95,6 +95,25 @@ p { margin: 0; }
 }
 .collapse-btn:hover { color: var(--teal-dark); border-color: #bfe3de; background: var(--teal-soft); }
 
+/* Tombol mode gelap/terang (topbar & halaman publik). */
+.theme-btn {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 36px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fbfcfe;
+  color: var(--ink-soft);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.theme-btn:hover { border-color: #bfe3de; color: var(--teal-dark); background: var(--teal-soft); }
+.theme-login { position: fixed; top: 20px; right: 22px; z-index: 120; box-shadow: var(--shadow); }
+
 @media (min-width: 861px) {
   .sidebar-mini .sidebar { width: 80px; }
   .sidebar-mini .main { margin-left: 80px; }
@@ -1878,5 +1897,152 @@ dialog.modal[open] { animation: modal-in 0.18s ease-out; }
 
 @media (max-width: 900px) {
   .bayar-grid { grid-template-columns: 1fr; }
+}
+
+/* =========================================================
+   MODE GELAP
+   Diaktifkan lewat atribut data-tema="gelap" pada <html>.
+   Pilihan disimpan di localStorage (lihat app.js).
+   ========================================================= */
+html[data-tema="gelap"] {
+  color-scheme: dark;
+  --bg: #0b1a28;
+  --bg-soft: #102436;
+  --card: #142a3d;
+  --ink: #e7eef5;
+  --ink-soft: #bccbd8;
+  --muted: #8fa5b8;
+  --line: #24405a;
+  --navy: #071625;
+  --navy-2: #173e5c;
+  --teal: #14a496;
+  --teal-dark: #55d6c7;
+  --teal-soft: rgba(36, 181, 165, 0.16);
+  --amber-soft: rgba(217, 119, 6, 0.2);
+  --red-soft: rgba(220, 38, 38, 0.2);
+  --green-soft: rgba(34, 197, 94, 0.18);
+  --blue-soft: rgba(59, 130, 246, 0.2);
+  --shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+}
+
+html[data-tema="gelap"] body {
+  background:
+    radial-gradient(1100px 560px at 0% -10%, rgba(36, 181, 165, 0.10), transparent 62%),
+    linear-gradient(165deg, #081623 0%, #0b1d2c 55%, #0f2434 100%);
+  background-attachment: fixed;
+  color: var(--ink);
+}
+
+html[data-tema="gelap"] .sidebar {
+  background: linear-gradient(180deg, #071625 0%, #050f1a 100%);
+  color: #b9ccdb;
+  box-shadow: 12px 0 32px -24px rgba(0, 0, 0, 0.9);
+}
+html[data-tema="gelap"] .main { box-shadow: inset 22px 0 34px -30px rgba(0, 0, 0, 0.9); }
+html[data-tema="gelap"] .topbar { background: rgba(11, 26, 40, 0.94); }
+html[data-tema="gelap"] .app-foot { background: rgba(8, 20, 32, 0.9); }
+
+/* Tombol & kontrol */
+html[data-tema="gelap"] .theme-btn { background: #172e42; }
+html[data-tema="gelap"] .theme-btn:hover { background: rgba(36, 181, 165, 0.18); color: #7fe0d4; }
+html[data-tema="gelap"] .btn { background: #1b3549; color: var(--ink); }
+html[data-tema="gelap"] .btn-ghost,
+html[data-tema="gelap"] .menu-btn,
+html[data-tema="gelap"] .collapse-btn,
+html[data-tema="gelap"] .tab,
+html[data-tema="gelap"] .combo-list { background: #172e42; border-color: var(--line); color: var(--ink-soft); }
+html[data-tema="gelap"] .btn-ghost:hover,
+html[data-tema="gelap"] .quick-tile:hover { border-color: rgba(36, 181, 165, 0.5); }
+html[data-tema="gelap"] .btn-dark { background: #2a4f6d; }
+html[data-tema="gelap"] .tab.active { background: #0f9d8f; border-color: #0f9d8f; color: #062420; }
+html[data-tema="gelap"] .input,
+html[data-tema="gelap"] select,
+html[data-tema="gelap"] textarea { background: #102638; border-color: #2a4a66; color: var(--ink); }
+html[data-tema="gelap"] .input::placeholder,
+html[data-tema="gelap"] textarea::placeholder { color: #7e94a7; }
+html[data-tema="gelap"] .input-toggle:hover,
+html[data-tema="gelap"] .modal-close:hover { background: rgba(255, 255, 255, 0.06); }
+
+/* Kartu & panel */
+html[data-tema="gelap"] .card { border-color: var(--line); }
+html[data-tema="gelap"] .card-head h2 { color: #cfe4f3; }
+html[data-tema="gelap"] .kpi-icon { background: #17324a; }
+html[data-tema="gelap"] .report-box,
+html[data-tema="gelap"] .meta-box,
+html[data-tema="gelap"] .money-row div,
+html[data-tema="gelap"] .profile-logo { background: #102638; }
+html[data-tema="gelap"] .table td { border-bottom-color: rgba(255, 255, 255, 0.07); }
+html[data-tema="gelap"] .table tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
+html[data-tema="gelap"] .progress { background: rgba(255, 255, 255, 0.08); }
+html[data-tema="gelap"] .modal-head { background: var(--card); }
+
+/* Warna KPI mengikuti tema gelap */
+html[data-tema="gelap"] .kpi-teal { --kpi-tint: rgba(36, 181, 165, 0.14); }
+html[data-tema="gelap"] .kpi-blue { --kpi-tint: rgba(59, 130, 246, 0.15); }
+html[data-tema="gelap"] .kpi-violet { --kpi-tint: rgba(139, 92, 246, 0.16); }
+html[data-tema="gelap"] .kpi-amber,
+html[data-tema="gelap"] .kpi-warning { --kpi-tint: rgba(217, 119, 6, 0.16); }
+html[data-tema="gelap"] .kpi-red,
+html[data-tema="gelap"] .kpi-danger { --kpi-tint: rgba(220, 38, 38, 0.16); }
+html[data-tema="gelap"] .kpi-slate { --kpi-tint: rgba(100, 116, 139, 0.18); }
+
+/* Badge, alert, dan teks status */
+html[data-tema="gelap"] .badge-success { color: #7ee2a8; }
+html[data-tema="gelap"] .badge-warning { color: #f7c265; }
+html[data-tema="gelap"] .badge-danger { color: #f79b9b; }
+html[data-tema="gelap"] .badge-info { color: #9cc2ff; }
+html[data-tema="gelap"] .badge-muted { background: rgba(148, 163, 184, 0.16); color: #a9bac9; }
+html[data-tema="gelap"] .alert-success { border-color: rgba(34, 197, 94, 0.35); color: #86efac; }
+html[data-tema="gelap"] .alert-error { border-color: rgba(239, 68, 68, 0.35); color: #fca5a5; }
+html[data-tema="gelap"] .alert-info { border-color: rgba(59, 130, 246, 0.35); color: #93c5fd; }
+html[data-tema="gelap"] .alert-warning { border-color: rgba(245, 158, 11, 0.35); color: #fcd34d; }
+html[data-tema="gelap"] .text-success { color: #6ee7a8; }
+html[data-tema="gelap"] .text-danger { color: #fca5a5; }
+html[data-tema="gelap"] .empty-icon { color: #fca5a5; }
+
+/* Halaman publik */
+html[data-tema="gelap"] .login-card,
+html[data-tema="gelap"] .join-card,
+html[data-tema="gelap"] .join-note,
+html[data-tema="gelap"] .join-type,
+html[data-tema="gelap"] .home-step,
+html[data-tema="gelap"] .home-strip,
+html[data-tema="gelap"] .compare-col,
+html[data-tema="gelap"] .home-faq details,
+html[data-tema="gelap"] .paket-kartu,
+html[data-tema="gelap"] .demo-box,
+html[data-tema="gelap"] .mock-badge,
+html[data-tema="gelap"] .table-bahan tbody tr { background: var(--card); border-color: var(--line); }
+html[data-tema="gelap"] .join-note { border-style: dashed; }
+html[data-tema="gelap"] .join-type.aktif { background: var(--teal-soft); }
+html[data-tema="gelap"] .home-nav { background: rgba(5, 15, 25, 0.92); }
+html[data-tema="gelap"] .home-nav .btn-ghost,
+html[data-tema="gelap"] .home-nav .theme-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #dcecf2;
+}
+html[data-tema="gelap"] .join-success .big-check { color: #6ee7a8; }
+
+/* Dokumen cetak (struk, kwitansi, slip) tetap kertas putih. */
+html[data-tema="gelap"] .kwitansi-page {
+  --ink: #12232e;
+  --ink-soft: #33475b;
+  --muted: #6b7c8d;
+  --line: #e1e9ef;
+  --card: #ffffff;
+  background: #fff;
+  color: #12232e;
+}
+
+@media print {
+  html[data-tema="gelap"] {
+    --ink: #12232e;
+    --ink-soft: #33475b;
+    --muted: #6b7c8d;
+    --line: #e1e9ef;
+    --card: #ffffff;
+  }
+  html[data-tema="gelap"] body { background: #fff; color: #12232e; }
 }
 
