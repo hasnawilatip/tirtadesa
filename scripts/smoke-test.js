@@ -112,13 +112,26 @@ async function main() {
     process.exit(1);
   }
 
+  // Uji sering dijalankan berulang: reset pembatas laju formulir publik & login
+  // agar pemeriksaan tidak gagal karena 429, bukan karena kesalahan aplikasi.
+  try {
+    db.prepare(`DELETE FROM rate_limit
+      WHERE kunci LIKE 'gabung:%' OR kunci LIKE 'lupa-sandi:%' OR kunci LIKE 'login:%'`).run();
+  } catch (err) {
+    console.error('Tidak dapat mereset rate limit:', err.message);
+  }
+
   const anonim = buatKlien();
   await cekHalaman(anonim, '/', 200, 'pemasukan yang terukur');
   const homeHtml = await (await anonim.ambil('/')).text();
   hasil(homeHtml.includes('id="paket"') && homeHtml.includes('home-paket-grid')
     && /home-paket-harga/.test(homeHtml), 'Beranda publik menampilkan paket langganan');
-  hasil((homeHtml.match(/\/gabung\?paket=\d+/g) || []).length >= 3,
-    'Paket di beranda bisa dipilih langsung ke formulir pendaftaran');
+  // Jumlah kartu paket mengikuti paket yang aktif di database (bisa diubah admin).
+  const paketAktif = db.prepare('SELECT COUNT(*) AS n FROM paket WHERE is_active = 1').get().n;
+  const tautanPaket = (homeHtml.match(/\/gabung\?paket=\d+/g) || []).length;
+  hasil(paketAktif === 0 || tautanPaket >= paketAktif,
+    'Paket di beranda bisa dipilih langsung ke formulir pendaftaran',
+    `${tautanPaket} tautan / ${paketAktif} paket aktif`);
   await cekHalaman(anonim, '/gabung', 200, 'Formulir pendaftaran');
   const gabungHtml = await (await anonim.ambil('/gabung')).text();
   hasil(gabungHtml.includes('data-jenis-panel="desa"') && gabungHtml.includes('data-jenis-panel="dusun"')
