@@ -25,7 +25,9 @@ function buatKlien() {
 
   async function segarkanToken() {
     const headers = cookie ? { cookie } : {};
-    const res = await fetch(`${BASE}${jalurToken}`, { headers, redirect: 'manual' });
+    // Ikuti redirect (mis. superadmin "/" → /superadmin) agar token CSRF
+    // diambil dari halaman yang benar-benar dirender.
+    const res = await fetch(`${BASE}${jalurToken}`, { headers, redirect: 'follow' });
     cookie = simpanCookie(res, cookie);
     const html = await res.text();
     const cocok = html.match(/<meta name="csrf-token" content="([^"]*)"/);

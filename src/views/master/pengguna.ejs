@@ -111,13 +111,16 @@
           <tr>
             <td><strong><%= u.nama %></strong></td>
             <td class="small"><%= u.username %></td>
-            <td><span class="badge badge-info"><%= roleLabel[u.role] || u.role %></span></td>
-            <td><%= u.dusun || 'Tingkat desa' %></td>
+            <td><span class="badge badge-info"><%= u.role_label || roleLabel[u.role] || u.role %></span></td>
+            <td><%= u.dusun || (u.desa_jenis === 'individu' ? 'Tingkat usaha' : u.desa_jenis === 'dusun' ? 'Dusun mandiri' : 'Tingkat desa') %></td>
             <td class="small"><%= u.pelanggan_nama ? `${u.nomor_pelanggan} · ${u.pelanggan_nama}` : '—' %></td>
             <td><span class="badge <%= u.is_active ? 'badge-success' : 'badge-muted' %>"><%= u.is_active ? 'Aktif' : 'Nonaktif' %></span></td>
             <td>
               <% if (bisaKelola || diriSendiri) { %>
                 <div class="btn-row" style="margin:0;">
+                  <% if (isSuperadmin && ['superadmin', 'admin_desa', 'admin_dusun'].includes(u.role)) { %>
+                    <button class="link" type="button" data-modal-open="modalEdit<%= u.id %>">Edit</button>
+                  <% } %>
                   <% if (bisaKelola) { %>
                     <form action="/pengguna/<%= u.id %>/toggle" method="post">
                       <button class="btn btn-ghost btn-sm" type="submit"><%= u.is_active ? 'Nonaktifkan' : 'Aktifkan' %></button>
@@ -142,6 +145,61 @@
   </div>
 </section>
 
+<% if (isSuperadmin) { %>
+  <% rows.filter((u) => ['superadmin', 'admin_desa', 'admin_dusun'].includes(u.role)).forEach((u) => { %>
+    <% const dusunPilihan = semuaDusun.filter((d) => Number(d.desa_id) === Number(u.desa_id)); %>
+    <dialog class="modal" id="modalEdit<%= u.id %>">
+      <div class="modal-head">
+        <div>
+          <h2>Edit akun admin</h2>
+          <span class="muted"><%= u.desa_nama || 'Ruang kerja' %><%= u.desa_jenis ? ` · ${u.desa_jenis}` : '' %></span>
+        </div>
+        <button class="modal-close" type="button" data-modal-close aria-label="Tutup">×</button>
+      </div>
+      <div class="modal-body">
+        <form action="/pengguna/<%= u.id %>/ubah" method="post" data-edit-akun>
+          <input type="hidden" name="tingkat" value="<%= tingkat %>">
+          <div class="form-grid">
+            <div class="field">
+              <label>Nama lengkap</label>
+              <input class="input" name="nama" value="<%= u.nama %>" required>
+            </div>
+            <div class="field">
+              <label>Username</label>
+              <input class="input" name="username" value="<%= u.username %>" required>
+            </div>
+            <div class="field">
+              <label>Peran</label>
+              <select name="role">
+                <option value="superadmin" <%= u.role === 'superadmin' ? 'selected' : '' %>>Superadmin</option>
+                <option value="admin_desa" <%= u.role === 'admin_desa' ? 'selected' : '' %>>Admin Pengelola (desa/usaha)</option>
+                <option value="admin_dusun" <%= u.role === 'admin_dusun' ? 'selected' : '' %>>Admin Dusun</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Dusun</label>
+              <select name="dusun_id">
+                <option value="">— Tingkat desa/pengelola —</option>
+                <% dusunPilihan.forEach((d) => { %>
+                  <option value="<%= d.id %>" <%= Number(u.dusun_id) === Number(d.id) ? 'selected' : '' %>><%= d.nama %></option>
+                <% }) %>
+              </select>
+              <span class="small muted">Wajib dipilih bila peran Admin Dusun.</span>
+            </div>
+          </div>
+          <% if (u.id === user.id) { %>
+            <p class="small muted">Anda sedang mengubah akun sendiri. Peran superadmin tidak dapat diturunkan.</p>
+          <% } %>
+          <div class="form-actions">
+            <button class="btn btn-primary" type="submit">Simpan perubahan</button>
+            <button class="btn btn-ghost" type="button" data-modal-close>Batal</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+  <% }) %>
+<% } %>
+
 <script>
   (() => {
     const form = document.querySelector('#modalDaftarAkun form');
@@ -158,5 +216,21 @@
     };
     role.addEventListener('change', atur);
     atur();
+  })();
+
+  // Pada popup edit akun, pilihan dusun hanya aktif untuk peran Admin Dusun.
+  (() => {
+    document.querySelectorAll('form[data-edit-akun]').forEach((form) => {
+      const role = form.querySelector('[name="role"]');
+      const dusun = form.querySelector('[name="dusun_id"]');
+      if (!role || !dusun) return;
+      const atur = () => {
+        const perlu = role.value === 'admin_dusun';
+        dusun.disabled = !perlu;
+        dusun.required = perlu;
+      };
+      role.addEventListener('change', atur);
+      atur();
+    });
   })();
 </script>

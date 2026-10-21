@@ -710,6 +710,17 @@ router.post('/tarif/blok/:id/delete', requireRole('admin_desa', 'superadmin'), (
 
 // Akun admin (pengelola) dikelola superadmin.
 const ROLE_ADMIN = ['superadmin', 'admin_desa', 'admin_dusun'];
+
+/**
+ * Label peran yang menyesuaikan jenis ruang kerja.
+ * Peran tersimpan tetap admin_desa, tetapi pada tenant usaha/dusun labelnya
+ * dibuat sesuai konteks agar tidak selalu terbaca "Admin Desa".
+ */
+function labelPeranAkun(u) {
+  if (u.role === 'admin_desa' && u.desa_jenis === 'individu') return 'Admin Usaha';
+  if (u.role === 'admin_desa' && u.desa_jenis === 'dusun') return 'Admin Dusun';
+  return ROLE_LABEL[u.role] || u.role;
+}
 // Akun staf dikelola admin masing-masing pengelola.
 const ROLE_STAF_DESA = ['petugas_catat', 'kasir', 'warga'];
 const ROLE_STAF_DUSUN = ['petugas_catat', 'warga'];
@@ -724,10 +735,12 @@ function roleYangBolehDibuat(user) {
 
 /** Daftar akun sesuai cakupan: superadmin = admin saja, admin = staf sendiri. */
 function daftarPengguna(user, tingkat = 'pengelola') {
-  const dasar = `SELECT u.*, d.nama AS dusun, p.nama AS pelanggan_nama, p.nomor_pelanggan
+  const dasar = `SELECT u.*, d.nama AS dusun, p.nama AS pelanggan_nama, p.nomor_pelanggan,
+      ds.nama AS desa_nama, ds.jenis AS desa_jenis
     FROM users u
     LEFT JOIN dusun d ON d.id = u.dusun_id
-    LEFT JOIN pelanggan p ON p.id = u.pelanggan_id`;
+    LEFT JOIN pelanggan p ON p.id = u.pelanggan_id
+    LEFT JOIN desa ds ON ds.id = u.desa_id`;
 
   if (user.role === 'superadmin') {
     // Bawaan: hanya superadmin & admin pengelola (admin desa). Akun di bawahnya
@@ -775,9 +788,10 @@ router.get('/pengguna', requireRole('superadmin', 'admin_desa', 'admin_dusun'), 
   const superadmin = req.user.role === 'superadmin';
   const tingkatSah = ['pengelola', 'dusun', 'semua'];
   const tingkat = superadmin && tingkatSah.includes(req.query.tingkat) ? req.query.tingkat : 'pengelola';
+  const rows = daftarPengguna(req.user, tingkat).map((u) => ({ ...u, role_label: labelPeranAkun(u) }));
   res.render('master/pengguna', {
     title: 'Pengguna',
-    rows: daftarPengguna(req.user, tingkat),
+    rows,
     tingkat,
     jumlahAdminDusun: superadmin
       ? db.prepare("SELECT COUNT(*) AS n FROM users WHERE role = 'admin_dusun'").get().n
@@ -794,6 +808,10 @@ router.get('/pengguna', requireRole('superadmin', 'admin_desa', 'admin_dusun'), 
           WHERE desa_id = ? AND dusun_id = ? AND status = 'aktif' ORDER BY nomor_pelanggan`).all(req.user.desa_id, req.user.dusun_id)
       : db.prepare(`SELECT id, nama, nomor_pelanggan FROM pelanggan
           WHERE desa_id = ? AND status = 'aktif' ORDER BY nomor_pelanggan`).all(req.user.desa_id),
+    // Superadmin dapat mengubah peran & dusun akun admin lintas pengelola.
+    semuaDusun: superadmin
+      ? db.prepare('SELECT id, desa_id, kode, nama FROM dusun ORDER BY desa_id, kode').all()
+      : [],
   });
 });
 
@@ -875,6 +893,88 @@ router.post('/pengguna', requireRole('superadmin', 'admin_desa', 'admin_dusun'),
     req.flash('error', 'Gagal mendaftarkan pengguna. Periksa kembali data yang diisi.');
   }
   res.redirect('/pengguna');
+});
+
+/**
+ * Superadmin memperbaiki data akun admin: nama, username, peran, dan dusun.
+ * Akun staf (petugas/kasir/warga) tetap dikelola admin pengelola masing-masing.
+ */
+router.post('/pengguna/:id/ubah', requireRole('superadmin'), (req, res) => {
+  const id = Number(req.params.id);
+  const target = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+  const tingkat = ['pengelola', 'dusun', 'semua'].includes(req.body.tingkat) ? req.body.tingkat : 'semua';
+  const kembali = `/pengguna?tingkat=${tingkat}`;
+
+  if (!target) {
+    req.flash('error', 'Pengguna tidak ditemukan.');
+    return res.redirect(kembali);
+  }
+  if (!ROLE_ADMIN.includes(target.role)) {
+    req.flash('error', 'Hanya akun admin yang dapat diubah dari panel superadmin.');
+    return res.redirect(kembali);
+  }
+
+  const nama = String(req.body.nama || '').trim();
+  const username = String(req.body.username || '').trim().toLowerCase();
+  const role = String(req.body.role || '').trim();
+
+  if (!nama || !username) {
+    req.flash('error', 'Nama dan username wajib diisi.');
+    return res.redirect(kembali);
+  }
+  if (!/^[a-z0-9][a-z0-9._-]{2,29}$/.test(username)) {
+    req.flash('error', 'Username hanya boleh huruf kecil, angka, titik, garis bawah, atau strip (3–30 karakter).');
+    return res.redirect(kembali);
+  }
+  if (!ROLE_ADMIN.includes(role)) {
+    req.flash('error', 'Peran akun tidak valid.');
+    return res.redirect(kembali);
+  }
+  if (db.prepare('SELECT 1 FROM users WHERE username = ? AND id <> ?').get(username, target.id)) {
+    req.flash('error', `Username ${username} sudah dipakai akun lain.`);
+    return res.redirect(kembali);
+  }
+
+  // Jangan sampai superadmin menurunkan peran akunnya sendiri dan terkunci.
+  if (target.id === req.user.id && role !== 'superadmin') {
+    req.flash('error', 'Anda tidak dapat menurunkan peran akun sendiri.');
+    return res.redirect(kembali);
+  }
+  if (target.role === 'superadmin' && role !== 'superadmin') {
+    const aktif = db.prepare("SELECT COUNT(*) AS n FROM users WHERE role = 'superadmin' AND is_active = 1").get().n;
+    if (aktif <= 1) {
+      req.flash('error', 'Superadmin aktif terakhir tidak boleh diturunkan perannya.');
+      return res.redirect(kembali);
+    }
+  }
+
+  let dusunId = null;
+  if (role === 'admin_dusun') {
+    dusunId = Number(req.body.dusun_id) || null;
+    if (!dusunId) {
+      req.flash('error', 'Admin dusun wajib dihubungkan ke salah satu dusun pada ruang kerjanya.');
+      return res.redirect(kembali);
+    }
+    const dusun = db.prepare('SELECT id FROM dusun WHERE id = ? AND desa_id = ?').get(dusunId, target.desa_id);
+    if (!dusun) {
+      req.flash('error', 'Dusun yang dipilih bukan milik ruang kerja akun ini.');
+      return res.redirect(kembali);
+    }
+  }
+
+  try {
+    db.prepare('UPDATE users SET nama = ?, username = ?, role = ?, dusun_id = ? WHERE id = ?')
+      .run(nama, username, role, dusunId, target.id);
+    // Paksa login ulang bila akun lain diubah agar sesi lama tidak memakai peran lama.
+    if (target.id !== req.user.id) hapusSesiPengguna(target.id);
+    audit(req, 'update', 'users', target.id,
+      `Ubah akun ${target.username} → ${username} (${target.role} → ${role})`);
+    req.flash('success', `Akun ${nama} diperbarui (${ROLE_LABEL[role]}).`);
+  } catch (err) {
+    console.error('Gagal mengubah pengguna:', err.message);
+    req.flash('error', 'Gagal mengubah akun. Periksa kembali data yang diisi.');
+  }
+  res.redirect(kembali);
 });
 
 router.post('/pengguna/:id/toggle', requireRole('superadmin', 'admin_desa', 'admin_dusun'), (req, res) => {

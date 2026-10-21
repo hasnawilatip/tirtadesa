@@ -42,7 +42,9 @@ function buatKlien() {
 
   async function segarkanToken() {
     const headers = cookie ? { cookie } : {};
-    const res = await fetch(`${BASE}${jalurToken}`, { headers, redirect: 'manual' });
+    // Ikuti redirect: superadmin yang membuka "/" dialihkan ke /superadmin,
+    // dan halaman tujuan itulah yang memuat token CSRF.
+    const res = await fetch(`${BASE}${jalurToken}`, { headers, redirect: 'follow' });
     let daftar = [];
     if (typeof res.headers.getSetCookie === 'function') daftar = res.headers.getSetCookie();
     if (!daftar.length) {
@@ -575,6 +577,37 @@ async function main() {
   const daftarSuper = await (await superadmin.ambil('/pengguna')).text();
   hasil(!daftarSuper.includes('Kasir Desa') && !daftarSuper.includes('Petugas Catat Krajan'),
     'Superadmin hanya melihat akun admin');
+  hasil(daftarSuper.includes('data-modal-open="modalEdit') && daftarSuper.includes('Simpan perubahan'),
+    'Superadmin punya popup edit akun admin');
+
+  // Superadmin dapat memperbaiki nama & peran akun admin.
+  const desaUji = db.prepare('SELECT id FROM desa ORDER BY id LIMIT 1').get();
+  const dusunUji = db.prepare('SELECT id FROM dusun WHERE desa_id = ? ORDER BY id LIMIT 1').get(desaUji.id);
+  let idAkunUji = null;
+  try {
+    const infoAkun = db.prepare(`INSERT INTO users
+      (desa_id, dusun_id, nama, username, password_hash, role, is_active)
+      VALUES (?, NULL, 'Akun Uji Edit', 'uji_edit_akun', ?, 'admin_desa', 1)`)
+      .run(desaUji.id, bcrypt.hashSync('UjiEdit12345', 10));
+    idAkunUji = Number(infoAkun.lastInsertRowid);
+    const resUbah = await superadmin.ambil(`/pengguna/${idAkunUji}/ubah`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        tingkat: 'pengelola', nama: 'Akun Uji Diubah', username: 'uji_edit_akun',
+        role: 'admin_dusun', dusun_id: String(dusunUji.id),
+      }).toString(),
+    });
+    const akunUbah = db.prepare('SELECT * FROM users WHERE id = ?').get(idAkunUji);
+    hasil(resUbah.status === 302 && akunUbah.nama === 'Akun Uji Diubah'
+      && akunUbah.role === 'admin_dusun' && Number(akunUbah.dusun_id) === Number(dusunUji.id),
+      'Superadmin bisa mengubah nama, peran & dusun akun');
+  } finally {
+    if (idAkunUji) {
+      db.prepare('DELETE FROM audit_log WHERE user_id = ?').run(idAkunUji);
+      db.prepare('DELETE FROM users WHERE id = ?').run(idAkunUji);
+    }
+  }
   await cekHalaman(superadmin, '/audit', 200, 'Audit Log');
   await cekHalaman(superadmin, '/', 302, null);
   await cekHalaman(superadmin, '/dusun', 302, null);
