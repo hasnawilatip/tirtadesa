@@ -60,6 +60,20 @@ function desaId(user) {
 }
 
 /**
+ * Label peran yang menyesuaikan jenis ruang kerja (tenant).
+ * Peran tersimpan tetap admin_desa/admin_dusun, tetapi pada tenant usaha atau
+ * dusun mandiri labelnya dibaca sesuai konteks (mis. "Admin Usaha").
+ */
+function labelPeran(user, desa) {
+  if (!user) return '';
+  if (user.role === 'admin_desa') {
+    if (desa && desa.jenis === 'individu') return 'Admin Usaha';
+    if (desa && desa.jenis === 'dusun') return 'Admin Dusun';
+  }
+  return ROLE_LABEL[user.role] || user.role;
+}
+
+/**
  * Cek hak kelola dusun sekaligus memastikan dusun berada di desa (tenant) pengguna.
  * Ini yang mencegah admin sebuah pengelola menyentuh data pengelola lain.
  */
@@ -73,6 +87,7 @@ function bolehKelolaDusun(user, dusunId) {
 
 module.exports = {
   ROLE_LABEL,
+  labelPeran,
   attachUser,
   requireAuth,
   requireRole,

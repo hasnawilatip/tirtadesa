@@ -147,8 +147,11 @@ router.get('/superadmin', requireRole('superadmin'), (req, res) => {
     ORDER BY created_at DESC, id DESC LIMIT 5`).all()
     .map((p) => ({ ...p, wa: waLink(p.whatsapp) }));
   const penggunaTerbaru = db.prepare(`
-    SELECT u.id, u.nama, u.username, u.role, u.is_active, u.created_at, d.nama AS dusun
-    FROM users u LEFT JOIN dusun d ON d.id = u.dusun_id
+    SELECT u.id, u.nama, u.username, u.role, u.is_active, u.created_at,
+           d.nama AS dusun, ds.jenis AS desa_jenis
+    FROM users u
+    LEFT JOIN dusun d ON d.id = u.dusun_id
+    LEFT JOIN desa ds ON ds.id = u.desa_id
     ORDER BY u.id DESC LIMIT 6
   `).all();
 

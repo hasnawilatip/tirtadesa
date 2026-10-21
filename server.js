@@ -9,7 +9,7 @@ const layouts = require('express-ejs-layouts');
 const helmet = require('helmet');
 
 const { initDb, db } = require('./src/db');
-const { attachUser } = require('./src/auth');
+const { attachUser, labelPeran } = require('./src/auth');
 const helpers = require('./src/helpers');
 const csrf = require('./src/services/csrf');
 const rateLimit = require('./src/services/rate-limit');
@@ -116,6 +116,9 @@ app.use((req, res, next) => {
   res.locals.desaAktif = req.user && req.user.desa_id
     ? db.prepare('SELECT * FROM desa WHERE id = ?').get(req.user.desa_id)
     : null;
+  // Label peran mengikuti jenis ruang kerja (Desa / Dusun / Usaha).
+  res.locals.peranSaya = labelPeran(req.user, res.locals.desaAktif);
+  res.locals.labelPeran = labelPeran;
   // Akun demo disembunyikan otomatis saat NODE_ENV=production,
   // kecuali sengaja diaktifkan dengan TAMPILKAN_AKUN_DEMO=1.
   res.locals.tampilkanDemo = process.env.NODE_ENV !== 'production' || process.env.TAMPILKAN_AKUN_DEMO === '1';

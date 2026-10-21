@@ -199,7 +199,7 @@
         <span class="avatar"><%= user.nama.charAt(0).toUpperCase() %></span>
         <div class="user-meta">
           <strong><%= user.nama %></strong>
-          <small><%= roleLabel[user.role] %><% if (user.dusun_nama) { %> · <%= user.dusun_nama %><% } %></small>
+          <small><%= peranSaya || roleLabel[user.role] %><% if (user.dusun_nama) { %> · <%= user.dusun_nama %><% } %></small>
         </div>
         <form action="/logout" method="post">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">

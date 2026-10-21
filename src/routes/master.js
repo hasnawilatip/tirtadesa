@@ -2,7 +2,7 @@
 
 const express = require('express');
 const { db } = require('../db');
-const { requireAuth, requireRole, aksesSemuaDusun, dusunScope, bolehKelolaDusun, ROLE_LABEL } = require('../auth');
+const { requireAuth, requireRole, aksesSemuaDusun, dusunScope, bolehKelolaDusun, ROLE_LABEL, labelPeran } = require('../auth');
 const { audit } = require('../helpers');
 const { hashSandi, validasiSandi } = require('../services/sandi');
 const { hapusSesiPengguna } = require('../services/sesi');
@@ -710,17 +710,6 @@ router.post('/tarif/blok/:id/delete', requireRole('admin_desa', 'superadmin'), (
 
 // Akun admin (pengelola) dikelola superadmin.
 const ROLE_ADMIN = ['superadmin', 'admin_desa', 'admin_dusun'];
-
-/**
- * Label peran yang menyesuaikan jenis ruang kerja.
- * Peran tersimpan tetap admin_desa, tetapi pada tenant usaha/dusun labelnya
- * dibuat sesuai konteks agar tidak selalu terbaca "Admin Desa".
- */
-function labelPeranAkun(u) {
-  if (u.role === 'admin_desa' && u.desa_jenis === 'individu') return 'Admin Usaha';
-  if (u.role === 'admin_desa' && u.desa_jenis === 'dusun') return 'Admin Dusun';
-  return ROLE_LABEL[u.role] || u.role;
-}
 // Akun staf dikelola admin masing-masing pengelola.
 const ROLE_STAF_DESA = ['petugas_catat', 'kasir', 'warga'];
 const ROLE_STAF_DUSUN = ['petugas_catat', 'warga'];
@@ -788,7 +777,10 @@ router.get('/pengguna', requireRole('superadmin', 'admin_desa', 'admin_dusun'), 
   const superadmin = req.user.role === 'superadmin';
   const tingkatSah = ['pengelola', 'dusun', 'semua'];
   const tingkat = superadmin && tingkatSah.includes(req.query.tingkat) ? req.query.tingkat : 'pengelola';
-  const rows = daftarPengguna(req.user, tingkat).map((u) => ({ ...u, role_label: labelPeranAkun(u) }));
+  const rows = daftarPengguna(req.user, tingkat).map((u) => ({
+    ...u,
+    role_label: labelPeran(u, { jenis: u.desa_jenis }),
+  }));
   res.render('master/pengguna', {
     title: 'Pengguna',
     rows,

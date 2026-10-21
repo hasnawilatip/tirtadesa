@@ -197,8 +197,8 @@
           <tr>
             <td><strong><%= u.nama %></strong></td>
             <td class="small"><%= u.username %></td>
-            <td><span class="badge badge-info"><%= roleLabel[u.role] || u.role %></span></td>
-            <td><%= u.dusun || 'Tingkat desa' %></td>
+            <td><span class="badge badge-info"><%= labelPeran(u, { jenis: u.desa_jenis }) || roleLabel[u.role] || u.role %></span></td>
+            <td><%= u.dusun || (u.desa_jenis === 'individu' ? 'Tingkat usaha' : 'Tingkat desa') %></td>
             <td><span class="badge <%= u.is_active ? 'badge-success' : 'badge-muted' %>"><%= u.is_active ? 'Aktif' : 'Nonaktif' %></span></td>
             <td class="small"><%= u.created_at %></td>
           </tr>
